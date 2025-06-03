@@ -8,7 +8,7 @@ export class UserOutput {
   readonly AvatarUrl: string | null;
   readonly Role: Roles;
   readonly Status: boolean;
-  LastLoginAt?: Date | null;
+  readonly LastLoginAt?: Date | null;
   readonly CreatedAt: Date;
   readonly UpdatedAt: Date;
 }

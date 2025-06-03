@@ -103,7 +103,7 @@ export class AuthController {
       throw new NotFoundException(`User not found`);
     }
 
-    delete user.LastLoginAt;
+   // delete user.LastLoginAt;
 
     return instanceToPlain(user) as UserOutput;
   }

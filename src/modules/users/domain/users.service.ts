@@ -59,18 +59,7 @@ export class UsersService {
     return this.usersRepository.findMany({
       where: role ? { Role: role } : undefined,
       order: { [sortBy]: order },
-      select: {
-        Id: true,
-        Email: true,
-        Name: true,
-        LastName: true,
-        AvatarUrl: true,
-        Role: true,
-        Status: true,
-        LastLoginAt: true,
-        CreatedAt: true,
-        UpdatedAt: true,
-      },
+     
     });
   }
 
@@ -81,18 +70,6 @@ export class UsersService {
     return this.usersRepository.findMany({
       where: [{ LastLoginAt: null }, { LastLoginAt: LessThanOrEqual(sinceDate) }],
       order: { LastLoginAt: 'ASC' },
-      select: {
-        Id: true,
-        Email: true,
-        Name: true,
-        LastName: true,
-        AvatarUrl: true,
-        Role: true,
-        Status: true,
-        LastLoginAt: true,
-        CreatedAt: true,
-        UpdatedAt: true,
-      },
     });
   }
 

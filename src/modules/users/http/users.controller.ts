@@ -85,10 +85,10 @@ export class UsersController {
   @Get('inactive') // Specific route moved before generic :id route
   @ApiOperation({ summary: 'Lista usuários inativos (sem login recente)' })
   @ApiQuery({
-     name: 'days',
-     required: false,
-     type: Number,
- description: 'Dias sem login (default: 30)',
+    name: 'days',
+    required: false,
+    type: Number,
+    description: 'Dias sem login (default: 30)',
   })
   @ApiResponse({ status: 200, description: 'Lista de usuários inativos', type: [UserOutput] })
   async findInactive(@Query('days') days = 30): Promise<UserOutput[]> {
@@ -153,6 +153,4 @@ export class UsersController {
   async delete(@Param('id') id: string): Promise<void> {
     await this.usersService.delete(id);
   }
-
- 
 }

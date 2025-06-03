@@ -9,20 +9,20 @@ import { TransformInterceptor } from './common/interceptors/transform.intercepto
 import { LoggerService } from './common/loggers/domain/logger.service';
 import { AppModule } from './app.module';
 import appConfig from './config/app.config';
+import { LastActivityInterceptor } from './common/interceptors/last-activity.interceptor';
+import { CACHE_MANAGER, CacheModule } from '@nestjs/cache-manager';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const env: ConfigType<typeof appConfig> = app.get(ConfigService).get('app');
   const logger = await app.resolve(LoggerService);
+  const cacheManager = await app.resolve(CacheModule);
   logger.contextName = bootstrap.name;
 
   app.enableCors({
     origin: (origin, callback) => {
-      // Permite sem origin (testes, servidores internos)
       if (!origin) return callback(null, true);
-      // Permite se for a URL do frontend
       if (origin === env.frontendUrl) return callback(null, true);
-      // Bloqueia qualquer outra origem
       return callback(new Error('Not allowed by CORS'), false);
     },
     credentials: true,

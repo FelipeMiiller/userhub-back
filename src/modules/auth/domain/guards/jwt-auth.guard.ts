@@ -16,9 +16,6 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
   }
 
   async canActivate(context: ExecutionContext) {
-    console.log(
-      `[JwtAuthGuard] canActivate triggered for path: ${context.switchToHttp().getRequest().path}, method: ${context.switchToHttp().getRequest().method}`,
-    );
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -36,20 +33,9 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       const payload = await this.authService.verifyToken(token);
       request['user'] = payload;
       if (!payload.status) {
-        // Este erro específico é importante para distinguir de falhas de token.
         throw new UnauthorizedException('User inactive');
       }
     } catch (error) {
-      // Log detalhado da falha de autenticação.
-      console.error(
-        `[JwtAuthGuard] Authentication failed for path: ${request.path}. Token: ${token ? token.substring(0, 30) + '...' : 'N/A'}. Original error: ${error.message}`,
-        {
-          errorName: error.name,
-          errorMessage: error.message,
-          // errorStack: error.stack, // Opcional: pode ser muito verboso para logs de rotina
-        },
-      );
-      // Lança uma exceção genérica para o cliente, ocultando detalhes internos.
       throw new UnauthorizedException('Invalid token');
     }
     return true;
@@ -57,14 +43,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
 
   private extractTokenFromHeader(request: Request): string | undefined {
     const authHeader = request.headers.authorization;
-    console.log('[JwtAuthGuard.extractTokenFromHeader] Raw Authorization Header:', authHeader);
     const [type, tokenValue] = authHeader?.split(' ') ?? [];
-    console.log(
-      '[JwtAuthGuard.extractTokenFromHeader] Parsed type:',
-      type,
-      'Parsed tokenValue:',
-      tokenValue,
-    );
     return type === 'bearer' ? tokenValue : undefined;
   }
 }
