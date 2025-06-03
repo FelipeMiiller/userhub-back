@@ -71,11 +71,20 @@ export class AllExceptionsFilter implements ExceptionFilter {
     }
 
     // Log apenas do erro processado
-    this.loggerService.error(`${errorResponse.statusCode} error: ${errorResponse.message} `, {
-      context: 'ExceptionsFilter',
-      stackTrace:
-        processedException instanceof Error ? processedException.stack : String(processedException),
-    });
+    this.loggerService.error(
+      `${errorResponse.statusCode} error: ${errorResponse.message} `,
+      {
+        context: request.context,
+
+        path: errorResponse.path,
+        httpMethod: request.method,
+        stackTrace:
+          processedException instanceof Error
+            ? processedException.stack
+            : String(processedException),
+      },
+      { slack: true },
+    );
 
     response.status(errorResponse.statusCode).json(errorResponse);
   }

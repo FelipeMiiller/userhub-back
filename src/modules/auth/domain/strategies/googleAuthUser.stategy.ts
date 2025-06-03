@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy, type VerifyCallback } from 'passport-google-oauth20';
@@ -6,6 +6,7 @@ import { AuthService } from '../auth.service';
 import { userGoogleStrategy } from '../guards/googleUser-auth.guard';
 import { GoogleProfile } from '../types';
 import googleOauthConfig from 'src/config/google.oauth.config';
+import { LoggerService } from 'src/common/loggers/domain/logger.service';
 
 @Injectable()
 export class GoogleOauthUserStrategy extends PassportStrategy(Strategy, userGoogleStrategy) {
@@ -21,22 +22,19 @@ export class GoogleOauthUserStrategy extends PassportStrategy(Strategy, userGoog
       scope: ['email', 'profile'],
     });
   }
-  async validate(
-    accessToken: string,
-    refreshToken: string,
-    profile: GoogleProfile,
-    done: VerifyCallback,
-  ) {
-    console.log(profile);
+  async validate(profile: GoogleProfile) {
+    const email = profile.emails?.[0]?.value || profile._json?.email || profile.email;
+    const primeiroNome =
+      profile.name?.givenName || profile._json?.given_name || profile.displayName?.split(' ')[0];
+    const segundoNome = profile.name?.familyName || profile._json?.family_name;
+    const avatarUrl = profile.photos?.[0]?.value || profile._json?.picture;
 
     const user = await this.authService.validateGoogleUser({
-      email: profile.emails[0].value || profile._json.email,
-      primeiroNome: profile.name.givenName || profile._json.given_name,
-      segundoNome: profile.name.familyName || profile._json.family_name,
-      avatarUrl: profile.photos[0].value || profile._json.picture,
+      email,
+      primeiroNome,
+      segundoNome,
+      avatarUrl,
     });
-    done(null, user);
-
-    // return user
+    return user;
   }
 }

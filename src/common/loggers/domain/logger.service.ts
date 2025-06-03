@@ -73,6 +73,7 @@ export class LoggerService {
     message: string,
     context: string,
     meta?: LogMetadata,
+
     userId?: string,
   ): Promise<void> {
     if (!this.loggersRepository) return;
@@ -95,6 +96,7 @@ export class LoggerService {
     level: string,
     message: string,
     context: string,
+
     meta?: LogMetadata,
     userId?: string,
   ): Promise<void> {
@@ -119,6 +121,7 @@ export class LoggerService {
   ): void {
     const metadata: LogMetadata = {
       context: this._contextName,
+
       idempotency: this._idempotencyKey,
       ...(meta || {}),
     };

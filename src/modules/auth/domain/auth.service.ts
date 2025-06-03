@@ -12,7 +12,7 @@ import * as argon2 from 'argon2';
 import jwtConfig from 'src/config/jwt.config';
 import refreshJwtConfig from 'src/config/refresh-jwt.config';
 import { User } from 'src/modules/users/domain/models/users.models';
-import { ProfilesService } from 'src/modules/users/domain/profiles.service';
+
 import { UsersService } from 'src/modules/users/domain/users.service';
 import { Login, Payload } from './types';
 
@@ -20,7 +20,7 @@ import { Login, Payload } from './types';
 export class AuthService {
   constructor(
     private readonly usersService: UsersService,
-    private readonly profilesService: ProfilesService,
+
     private readonly jwtService: JwtService,
     @Inject(refreshJwtConfig.KEY)
     private readonly refresTokenConfig: ConfigType<typeof refreshJwtConfig>,
@@ -34,7 +34,7 @@ export class AuthService {
     }
 
     const user = await this.usersService.findOneByEmail(email);
-    console.log('user', user);
+
     if (!user) {
       throw new NotFoundException(`User not found ${email}`);
     }
@@ -46,7 +46,7 @@ export class AuthService {
     if (!passwordMatch) {
       throw new UnauthorizedException('Invalid credentials');
     }
-    console.log(user);
+
     return user;
   }
 
@@ -63,17 +63,13 @@ export class AuthService {
     }
     const user = await this.usersService.findOneByEmail(email);
 
-    if (!user || user === null) {
+    if (!user) {
       throw new UnauthorizedException(`Not found ${email}`);
     }
 
-    if (!user.Profile) {
-      throw new UnauthorizedException(`Not found perfil ${email}`);
-    }
-
-    if (!user.Profile.AvatarUrl) {
-      await this.profilesService.update(user.Profile.Id, {
-        avatarUrl: googleUser.avatarUrl,
+    if (!user.AvatarUrl) {
+      await this.usersService.update(user.Id, {
+        AvatarUrl: googleUser.avatarUrl,
       });
     }
     return user;
@@ -84,12 +80,19 @@ export class AuthService {
       sub: user.Id,
       email: user.Email,
       role: user.Role,
+      status: user.Status,
     };
 
     const { accessToken, refreshToken } = await this.generateToken(payload);
     const hashRefreshToken = await argon2.hash(refreshToken);
 
-    await this.usersService.update(user.Id, { HashRefreshToken: hashRefreshToken });
+    const userUpdated = await this.usersService.update(user.Id, {
+      HashRefreshToken: hashRefreshToken,
+    });
+
+    if (!userUpdated) {
+      throw new UnauthorizedException('User not found');
+    }
 
     return {
       accessToken: accessToken,
@@ -104,18 +107,34 @@ export class AuthService {
   async generateToken(payload: Payload): Promise<{ accessToken: string; refreshToken: string }> {
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload),
-      this.jwtService.signAsync(payload, this.refresTokenConfig),
+      this.jwtService.signAsync(payload, {
+        secret: this.refresTokenConfig.secret,
+        ...this.refresTokenConfig.signOptions,
+      }),
     ]);
 
     return { accessToken, refreshToken };
   }
 
   async refreshToken({ refreshToken }: Omit<Login, 'accessToken'>): Promise<Login> {
-    const payload: Payload = await this.verifyRefreshToken(refreshToken);
-    const accessToken = await this.jwtService.signAsync(payload);
+    const verifiedRefreshPayload: Payload = await this.verifyRefreshToken(refreshToken);
 
+    // Criamos um NOVO payload para o accessToken, omitindo 'iat' e 'exp' do payload do refresh token
+    const newAccessTokenPayload: Omit<Payload, 'iat' | 'exp'> = {
+      sub: verifiedRefreshPayload.sub,
+      email: verifiedRefreshPayload.email,
+      role: verifiedRefreshPayload.role,
+      status: verifiedRefreshPayload.status,
+    };
+    console.log('[AuthService.refreshToken] newAccessTokenPayload:', newAccessTokenPayload);
+
+    // Geramos o novo accessToken com o payload limpo e as opções corretas
+    const newAccessToken = await this.jwtService.signAsync(newAccessTokenPayload, {
+      secret: this.jwtConfiguration.secret,
+      ...this.jwtConfiguration.signOptions,
+    });
     return {
-      accessToken,
+      accessToken: newAccessToken,
       refreshToken: refreshToken,
     };
   }
@@ -129,30 +148,41 @@ export class AuthService {
         throw new UnauthorizedException('Refresh token is required');
       }
 
+      console.log('oiooi');
       await this.verifyRefreshToken(refreshToken);
 
       const user = await this.usersService.findOneById(id);
-      if (!user || !user.HashRefreshToken) {
-        throw new UnauthorizedException('Invalid refresh token');
+      if (!user) {
+        throw new UnauthorizedException('Invalid refresh token.');
       }
+      if (!user.HashRefreshToken) {
+        throw new UnauthorizedException('Refresh token has been revoked.');
+      }
+      console.log('user.HashRefreshToken');
+
       const refreshtTokenMatches = await argon2.verify(user.HashRefreshToken, refreshToken);
       if (!refreshtTokenMatches) {
         throw new UnauthorizedException('Invalid refresh token');
       }
       return { refreshToken };
     } catch (error) {
-      throw new UnauthorizedException('Invalid refresh token');
+      throw error;
     }
   }
 
   async validateJwt(payload: Payload): Promise<Payload> {
+    console.log('[AuthService.validateJwt] Received payload:', payload);
     const { sub } = payload;
 
     const user = await this.usersService.findOneById(sub);
-    if (!user || !user.HashRefreshToken) {
+    console.log(
+      '[AuthService.validateJwt] User found for sub ' + sub + ':',
+      user ? user.Id : 'null',
+    );
+    if (!user) {
       throw new UnauthorizedException('User not found');
     }
-    return { ...payload, ...user };
+    return { ...payload };
   }
 
   async signOutUser(id: string) {
@@ -170,12 +200,12 @@ export class AuthService {
   }
 
   async verifyRefreshToken(token: string): Promise<Payload> {
-    if (!this.refresTokenConfig.algorithm || !this.refresTokenConfig.secret) {
+    if (!this.refresTokenConfig.signOptions?.algorithm || !this.refresTokenConfig.secret) {
       throw new Error('JWT algorithm or secret is not defined in configuration.');
     }
     return this.jwtService.verifyAsync(token, {
       secret: this.refresTokenConfig.secret,
-      algorithms: [this.refresTokenConfig.algorithm],
+      algorithms: [this.refresTokenConfig.signOptions.algorithm],
     });
   }
 

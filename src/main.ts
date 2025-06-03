@@ -1,5 +1,5 @@
 import { ValidationPipe } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { ConfigService, ConfigType } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
@@ -8,20 +8,31 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { LoggerService } from './common/loggers/domain/logger.service';
 import { AppModule } from './app.module';
+import appConfig from './config/app.config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  const env = app.get(ConfigService).get('app');
+  const env: ConfigType<typeof appConfig> = app.get(ConfigService).get('app');
   const logger = await app.resolve(LoggerService);
   logger.contextName = bootstrap.name;
 
-  app.enableCors({ origin: env.origin });
+  app.enableCors({
+    origin: (origin, callback) => {
+      // Permite sem origin (testes, servidores internos)
+      if (!origin) return callback(null, true);
+      // Permite se for a URL do frontend
+      if (origin === env.frontendUrl) return callback(null, true);
+      // Bloqueia qualquer outra origem
+      return callback(new Error('Not allowed by CORS'), false);
+    },
+    credentials: true,
+  });
 
   const configSwagger = new DocumentBuilder()
-    .setTitle('Template-Nest')
-    .setDescription('Template-Nest')
+    .setTitle('UserHub')
+    .setDescription('API para gerenciamento de usuários')
     .setVersion('1.0')
-    .addBearerAuth()
+    .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'jwt')
     .build();
 
   const document = SwaggerModule.createDocument(app, configSwagger);

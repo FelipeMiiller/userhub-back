@@ -5,10 +5,9 @@ import {
   IsOptional,
   IsString,
   IsStrongPassword,
-  ValidateNested,
+  IsUrl,
 } from 'class-validator';
-import { TransformToHash } from 'src/common/shared/validators/TransformToHash.validator';
-import { ProfileInput } from './create-profile.dto';
+
 import { Roles } from 'src/modules/users/domain/models/users.models';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -38,6 +37,33 @@ export class UserInput {
   })
   readonly Password: string;
 
+  @ApiProperty({
+    description: 'User name',
+    example: 'John',
+    maxLength: 100,
+  })
+  @IsString()
+  @IsNotEmpty()
+  readonly Name: string;
+
+  @ApiPropertyOptional({
+    description: 'User last name',
+    example: 'Doe',
+    maxLength: 100,
+  })
+  @IsString()
+  @IsOptional()
+  readonly LastName?: string | null;
+
+  @ApiPropertyOptional({
+    description: 'URL for user avatar',
+    example: 'https://example.com/avatar.jpg',
+    maxLength: 255,
+  })
+  @IsUrl()
+  @IsOptional()
+  readonly AvatarUrl?: string | null;
+
   @ApiPropertyOptional({
     description: 'User role',
     enum: Roles,
@@ -46,13 +72,5 @@ export class UserInput {
   })
   @IsOptional()
   @IsEnum(Roles)
-  readonly Role: Roles.USER;
-
-  @ApiProperty({
-    description: 'User profile',
-    type: () => ProfileInput,
-  })
-  @IsNotEmpty()
-  @ValidateNested()
-  readonly Profile: ProfileInput;
+  readonly Role?: Roles;
 }

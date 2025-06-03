@@ -1,40 +1,64 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigType } from '@nestjs/config';
-import { LoggerModule } from 'src/common/loggers/logger.module';
-import { UsersModule } from 'src/modules/users/users.module';
-import { UploadS3Module } from 'src/common/s3/uploader3.module';
+import { ConfigModule } from '@nestjs/config';
+import { LoggerModule } from './common/loggers/logger.module';
+import { UsersModule } from './modules/users/users.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
-import { BullModule } from '@nestjs/bullmq';
-import redisConfig from 'src/config/redis.config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
-import mongoConfig from 'src/config/mongo.config';
+import mongoConfig from './config/mongo.config';
 import slackConfig from './config/slack.config';
 import { pathEnv } from './config/pathEnv';
 import appConfig from './config/app.config';
 import typeormConfig from './config/typeorm.config';
 import { AuthModule } from './modules/auth/auth.module';
+import { AppController } from './app.controller';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { CacheModule } from '@nestjs/cache-manager';
+import { redisStore } from 'cache-manager-redis-yet';
 
 @Module({
   imports: [
+    ThrottlerModule.forRoot([
+      {
+        name: 'short',
+        ttl: 1000,
+        limit: 3,
+      },
+      {
+        name: 'medium',
+        ttl: 10000,
+        limit: 20,
+      },
+      {
+        name: 'long',
+        ttl: 60000,
+        limit: 100,
+      },
+    ]),
+    CacheModule.registerAsync({
+      imports: [ConfigModule],
+      isGlobal: true,
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => {
+        const store = await redisStore({
+          socket: {
+            host: configService.get('redis.host'),
+            port: Number(configService.get('redis.port')),
+          },
+        });
+        return {
+          store,
+          ttl: Number(configService.get('redis.ttl')),
+        };
+      },
+    }),
     ConfigModule.forRoot({
       envFilePath: [pathEnv],
       isGlobal: true,
       load: [appConfig, typeormConfig, mongoConfig, slackConfig],
     }),
     EventEmitterModule.forRoot(),
-    // PrismaModule,
-    BullModule.forRootAsync({
-      imports: [ConfigModule.forRoot({ load: [redisConfig] })],
-      useFactory: (configDatabase: ConfigType<typeof redisConfig>) => ({
-        connection: {
-          port: configDatabase.port,
-          host: configDatabase.host,
-        },
-      }),
-      inject: [redisConfig.KEY],
-    }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => configService.get('typeorm'),
@@ -45,12 +69,12 @@ import { AuthModule } from './modules/auth/auth.module';
         uri: configService.get<string>('mongo.uri'),
       }),
     }),
-    UploadS3Module,
     LoggerModule,
     UsersModule,
     AuthModule,
   ],
 
+  controllers: [AppController],
   exports: [ConfigModule],
 })
 export class AppModule {}

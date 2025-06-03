@@ -19,6 +19,10 @@ export class SlackLoggerService {
     // Campos essenciais
     const context = meta?.context || 'Backend';
     const level = meta?.level || 'INFO';
+    const environment = meta?.environment || this.configService.get('app.environment');
+    const userId = meta?.userId || 'Desconhecido';
+    const httpMethod = meta?.httpMethod || 'Desconhecido';
+    const path = meta?.path || 'Desconhecido';
     const timestamp = meta?.timestamp
       ? new Date(meta.timestamp as string).toLocaleString('pt-BR', {
           timeZone: 'America/Sao_Paulo',
@@ -45,9 +49,23 @@ export class SlackLoggerService {
         type: 'section',
         text: {
           type: 'mrkdwn',
+          text: `*Método:* ${httpMethod}`,
+        },
+      },
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: `*Path:* ${path}`,
+        },
+      },
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
           text: [
             meta?.userId ? `*Usuário:* ${meta.userId}` : null,
-            meta?.environment ? `*Ambiente:* ${meta.environment}` : null,
+            meta?.environment ? `*Ambiente:* ${environment}` : null,
             `*Data/Hora:* ${timestamp}`,
           ]
             .filter(Boolean)

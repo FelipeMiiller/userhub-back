@@ -8,6 +8,11 @@ import {
   Patch,
   Delete,
   UseGuards,
+  UnauthorizedException,
+  Req,
+  HttpCode,
+  NotFoundException,
+  UseInterceptors,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -26,6 +31,7 @@ import { UserInput } from './dtos/create-users.dto';
 import { RolesGuards } from 'src/modules/auth/domain/decorator/roles.decorator';
 import { JwtAuthGuard } from 'src/modules/auth/domain/guards/jwt-auth.guard';
 import { Roles, User } from '../domain/models/users.models';
+import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
@@ -34,7 +40,7 @@ import { Roles, User } from '../domain/models/users.models';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  @RolesGuards([Roles.ADMIN, Roles.MODERATOR])
+  @RolesGuards([Roles.ADMIN])
   @Post()
   @ApiOperation({ summary: 'Cria um novo usuário' })
   @ApiBody({ type: UserInput })
@@ -45,21 +51,54 @@ export class UsersController {
     return instanceToPlain<User>(user) as UserOutput;
   }
 
-  @RolesGuards([Roles.ADMIN, Roles.MODERATOR])
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(300)
+  @RolesGuards([Roles.ADMIN])
   @Get()
-  @ApiOperation({ summary: 'Lista todos os usuários (paginado)' })
-  @ApiQuery({ name: 'page', required: false, type: Number })
-  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiOperation({ summary: 'Lista todos os usuários (paginado, filtro por role e ordenação)' })
+  @ApiQuery({
+    name: 'role',
+    required: false,
+    enum: Roles,
+    description: 'Filtrar por role (admin ou user)',
+  })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    type: String,
+    description: 'Campo para ordenar (ex: Name, Email, CreatedAt)',
+  })
+  @ApiQuery({ name: 'order', required: false, type: String, description: 'asc ou desc' })
   @ApiResponse({ status: 200, description: 'Lista de usuários', type: [UserOutput] })
   async findAll(
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
+    @Query('role') role?: Roles,
+    @Query('sortBy') sortBy: string = 'Name',
+    @Query('order') order: 'asc' | 'desc' = 'asc',
   ): Promise<UserOutput[]> {
-    const users = await this.usersService.findMany({ page, limit });
+    const users = await this.usersService.findMany({ role, sortBy, order });
     return users.map((u) => instanceToPlain<User>(u)) as UserOutput[];
   }
 
-  @RolesGuards([Roles.ADMIN, Roles.MODERATOR])
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(300)
+  @RolesGuards([Roles.ADMIN])
+  @Get('inactive') // Specific route moved before generic :id route
+  @ApiOperation({ summary: 'Lista usuários inativos (sem login recente)' })
+  @ApiQuery({
+     name: 'days',
+     required: false,
+     type: Number,
+ description: 'Dias sem login (default: 30)',
+  })
+  @ApiResponse({ status: 200, description: 'Lista de usuários inativos', type: [UserOutput] })
+  async findInactive(@Query('days') days = 30): Promise<UserOutput[]> {
+    const users = await this.usersService.findInactive(days);
+    return users.map((u) => instanceToPlain<User>(u)) as UserOutput[];
+  }
+
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(300)
+  @RolesGuards([Roles.ADMIN])
   @Get(':id')
   @ApiOperation({ summary: 'Busca usuário por ID' })
   @ApiParam({ name: 'id', type: String })
@@ -67,36 +106,46 @@ export class UsersController {
   @ApiResponse({ status: 404, description: 'Usuário não encontrado' })
   async findById(@Param('id') id: string): Promise<UserOutput | null> {
     const user = await this.usersService.findOneById(id);
-    if (!user) return null;
+    if (!user) {
+      throw new NotFoundException(`Usuário com ID '${id}' não encontrado`);
+    }
     return instanceToPlain<User>(user) as UserOutput;
   }
 
-  @RolesGuards([Roles.ADMIN, Roles.MODERATOR])
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(300)
+  @RolesGuards([Roles.ADMIN])
   @Get('email/:email')
   @ApiOperation({ summary: 'Busca usuário por email' })
   @ApiParam({ name: 'email', type: String })
   @ApiResponse({ status: 200, description: 'Usuário encontrado', type: UserOutput })
-  @ApiResponse({ status: 404, description: 'Usuário não encontrado' })
   async findByEmail(@Param('email') email: string): Promise<UserOutput | null> {
     const user = await this.usersService.findOneByEmail(email);
     if (!user) return null;
     return instanceToPlain<User>(user) as UserOutput;
   }
 
-  @RolesGuards([Roles.ADMIN, Roles.MODERATOR])
+  @RolesGuards([Roles.ADMIN, Roles.USER])
   @Patch(':id')
   @ApiOperation({ summary: 'Atualiza usuário por ID' })
   @ApiParam({ name: 'id', type: String })
   @ApiBody({ type: UpdateUser })
   @ApiResponse({ status: 200, description: 'Usuário atualizado', type: UserOutput })
-  @ApiResponse({ status: 404, description: 'Usuário não encontrado' })
-  async update(@Param('id') id: string, @Body() dto: UpdateUser): Promise<UserOutput> {
+  async update(
+    @Param('id') id: string,
+    @Body() dto: UpdateUser,
+    @Req() req: Request,
+  ): Promise<UserOutput> {
+    if (req['user'].role !== Roles.ADMIN && req['user'].sub !== id) {
+      throw new UnauthorizedException('Apenas administradores podem atualizar outros usuários');
+    }
     const user = await this.usersService.update(id, dto);
     return instanceToPlain<User>(user) as UserOutput;
   }
 
-  @RolesGuards([Roles.ADMIN, Roles.MODERATOR])
+  @RolesGuards([Roles.ADMIN])
   @Delete(':id')
+  @HttpCode(204)
   @ApiOperation({ summary: 'Remove usuário por ID' })
   @ApiParam({ name: 'id', type: String })
   @ApiResponse({ status: 204, description: 'Usuário removido com sucesso' })
@@ -104,4 +153,6 @@ export class UsersController {
   async delete(@Param('id') id: string): Promise<void> {
     await this.usersService.delete(id);
   }
+
+ 
 }

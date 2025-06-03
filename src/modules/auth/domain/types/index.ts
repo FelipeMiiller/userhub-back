@@ -1,6 +1,7 @@
 export interface GoogleProfile {
   id: string;
   displayName: string;
+  email: string;
   name: {
     familyName: string;
     givenName: string;
@@ -29,6 +30,7 @@ export interface Payload {
   email: string;
   sub: string;
   role: string;
+  status: boolean;
 }
 
 export interface Login {

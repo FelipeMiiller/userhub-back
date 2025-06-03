@@ -1,7 +1,5 @@
-import { IsEmail, IsNotEmpty, IsString, IsStrongPassword, ValidateNested } from 'class-validator';
-
+import { IsEmail, IsNotEmpty, IsOptional, IsString, IsStrongPassword } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { ProfileInputAuth } from './create-profile.dto';
 
 export class UserInputAuth {
   @ApiProperty({
@@ -30,10 +28,20 @@ export class UserInputAuth {
   readonly Password: string;
 
   @ApiProperty({
-    description: 'User profile',
-    type: () => ProfileInputAuth,
+    description: 'User name',
+    example: 'John',
+    maxLength: 100,
   })
+  @IsString()
   @IsNotEmpty()
-  @ValidateNested()
-  readonly Profile: ProfileInputAuth;
+  readonly Name: string;
+
+  @ApiPropertyOptional({
+    description: 'User last name',
+    example: 'Doe',
+    maxLength: 100,
+  })
+  @IsString()
+  @IsOptional()
+  readonly LastName?: string | null;
 }

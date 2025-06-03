@@ -70,12 +70,20 @@ export abstract class BaseTypeOrmRepository<T> {
     }
   }
 
-  async findOne(options: FindOneOptions<T>): Promise<T | null> {
-    return this.repository.findOne(options);
+  async findOne(Options: FindOneOptions<T>): Promise<T | null> {
+    try {
+      return await this.repository.findOne(Options);
+    } catch (error) {
+      this.handlePostgresError(error);
+    }
   }
 
-  async findMany(options?: FindManyOptions<T>): Promise<T[]> {
-    return this.repository.find(options);
+  async findMany(Options?: FindManyOptions<T>): Promise<T[]> {
+    try {
+      return await this.repository.find(Options);
+    } catch (error) {
+      this.handlePostgresError(error);
+    }
   }
 
   async delete(

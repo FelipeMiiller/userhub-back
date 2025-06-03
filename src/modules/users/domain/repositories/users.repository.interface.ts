@@ -17,6 +17,7 @@ export interface UsersRepository {
     user: DeepPartial<UserEntity>,
     options?: SaveOptions,
   ): Promise<UserEntity | null>;
+
   delete(
     criteria:
       | string

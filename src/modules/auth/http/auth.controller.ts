@@ -23,7 +23,7 @@ import { GoogleUserAuthGuard } from '../domain/guards/googleUser-auth.guard';
 import { RefreshAuthGuard } from '../domain/guards/refresh-auth.guard';
 import { JwtAuthGuard } from '../domain/guards/jwt-auth.guard';
 import { instanceToPlain } from 'class-transformer';
-import { Roles, User } from 'src/modules/users/domain/models/users.models';
+import { Roles } from 'src/modules/users/domain/models/users.models';
 import { UserOutput } from 'src/modules/users/http/dtos/output-users.dto';
 import { UserInputAuth } from './dto/create-users.dto';
 
@@ -39,30 +39,34 @@ export class AuthController {
 
   @HttpCode(HttpStatus.CREATED)
   @Public()
-  @Post('user/signup')
+  @Post('signup')
   async create(@Body() userDto: UserInputAuth): Promise<UserOutput> {
     const user = await this.usersService.create({
       ...userDto,
       Role: Roles.USER,
     });
-    return instanceToPlain<User>(user) as UserOutput;
+
+    delete user.LastLoginAt;
+
+    return instanceToPlain(user) as UserOutput;
   }
 
   @Public()
   @UseGuards(LocalUserAuthGuard)
-  @Post('user/signin')
+  @Post('signin')
+  @HttpCode(HttpStatus.OK)
   async loginUser(@Req() req: Request): Promise<Login> {
     return this.authService.loginUser(req['user']);
   }
 
   @Public()
   @UseGuards(GoogleUserAuthGuard)
-  @Get('user/google/signin')
+  @Get('google/signin')
   async googleLoginUser(@Req() req: Request) {}
 
   @Public()
   @UseGuards(GoogleUserAuthGuard)
-  @Get('user/google/callback')
+  @Get('google/callback')
   async googleCallbackUser(@Req() req: Request, @Res() res: Response) {
     const response = await this.authService.loginUser(req['user']);
     res.redirect(
@@ -71,28 +75,36 @@ export class AuthController {
   }
 
   @Public()
+  @ApiBearerAuth()
   @UseGuards(RefreshAuthGuard)
-  @Post('refresh')
+  @Post('refreshToken')
+  @HttpCode(HttpStatus.OK)
   async refreshToken(@Req() req: Request): Promise<Login> {
+    console.log('req["user"]', req['user']);
     return this.authService.refreshToken(req['user']);
   }
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
-  @Post('user/signout')
+  @Post('signout')
+  @HttpCode(HttpStatus.OK)
   async logoutUser(@Req() req: Request) {
     return this.authService.signOutUser(req['user'].sub);
   }
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
-  @Get('user/me')
+  @Get('me')
   async getUser(@Req() req: Request): Promise<UserOutput> {
-    const { sub }: Payload = await req['user'];
+    const { sub }: Payload = req['user'];
     const user = await this.usersService.findOneById(sub);
+
     if (!user) {
-      throw new NotFoundException(`Not found ${sub}`);
+      throw new NotFoundException(`User not found`);
     }
+
+    delete user.LastLoginAt;
+
     return instanceToPlain(user) as UserOutput;
   }
 }

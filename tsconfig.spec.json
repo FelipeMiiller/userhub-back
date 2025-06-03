@@ -1,0 +1,16 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "outDir": "../dist",
+        "types": [
+            "jest",
+            "node"
+        ]
+    },
+    "files": [
+        "jest.setup.ts"
+    ],
+    "include": [
+        "src/**/*.spec.ts"
+    ]
+}

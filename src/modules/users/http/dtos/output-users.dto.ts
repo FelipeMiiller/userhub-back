@@ -1,11 +1,14 @@
-import { ObjectType } from '@nestjs/graphql';
-import { ProfileOutput } from './output-profile.dto';
+import { Roles, User } from '../../domain/models/users.models';
 
-@ObjectType()
 export class UserOutput {
-  readonly id: string;
-  readonly email: string;
-  readonly profile?: ProfileOutput;
-  readonly createdAt: Date;
-  readonly updatedAt: Date;
+  readonly Id: string;
+  readonly Email: string;
+  readonly Name: string;
+  readonly LastName: string | null;
+  readonly AvatarUrl: string | null;
+  readonly Role: Roles;
+  readonly Status: boolean;
+  LastLoginAt?: Date | null;
+  readonly CreatedAt: Date;
+  readonly UpdatedAt: Date;
 }

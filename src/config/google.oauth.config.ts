@@ -7,5 +7,5 @@ export default registerAs('googleOAuth', () => ({
     `${process.env.FRONTEND_URL}/${process.env.GOOGLE_CALLBACK_USER_URL}` ||
     'localhost:3000/api/auth/google/callback',
   callbackBackendUser:
-    `${process.env.ORIGIN}/auth/user/google/callback` || 'localhost:3005/auth/user/google/callback',
+    `${process.env.ORIGIN}/auth/google/callback` || 'localhost:3005/auth/google/callback',
 }));
