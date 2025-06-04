@@ -83,7 +83,7 @@ export class LoggerService {
         timestamp: new Date(),
       });
     } catch (error) {
-      console.error('Failed to send log to Slack:', error);
+      console.log('Failed to send log to Slack:', error);
     }
   }
 
