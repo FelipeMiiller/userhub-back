@@ -24,7 +24,8 @@
     "test:cov": "dotenv -e .env.test -- jest --coverage",
     "test:debug": "dotenv -e .env.test -- node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "dotenv -e .env.test -- jest   --config ./test/jest-e2e.json",
-    "test:all": "dotenv -e .env.test -- jest --all"
+    "test:dev": "dotenv -e .env.test -- jest --all",
+    "test:all": "jest --all"
   },
   "engines": {
     "node": "22.16.0"
