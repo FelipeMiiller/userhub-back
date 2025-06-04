@@ -33,7 +33,7 @@ jobs:
         uses: harmon758/postgresql-action@v1
         with:
           postgresql version: '17'
-          postgresql db: 'test_db'  
+          postgresql db: 'userhub'  
           postgresql user: 'postgres'
           postgresql password: 'postgres'
        
