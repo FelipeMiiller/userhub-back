@@ -82,7 +82,7 @@ jobs:
        
       - name: Run migrations
         run: |
-          yarn typeorm:run-migrations
+          yarn migration:run
           # ou yarn migration:run dependendo do seu script
        
       - name: Run all tests
