@@ -46,7 +46,11 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
     }),
   );
-  app.useGlobalInterceptors(new TransformInterceptor(), new LoggingInterceptor(logger));
+  // app.useGlobalInterceptors(
+  //   new ClassSerializerInterceptor(app.get(Reflector)),
+  //   new TransformInterceptor(),
+  //   new LoggingInterceptor(logger),
+  // );
   app.useGlobalFilters(new AllExceptionsFilter(logger));
   app.enableShutdownHooks();
 

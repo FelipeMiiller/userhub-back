@@ -1,4 +1,9 @@
-import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   DeepPartial,
   FindManyOptions,
@@ -40,10 +45,19 @@ export abstract class BaseTypeOrmRepository<T> {
             description: 'Verifique as restrições dos campos.',
           });
         default:
-          throw error;
+        
+          throw new InternalServerErrorException(
+            'Ocorreu um erro desconhecido no banco de dados.',
+            {
+              cause: error,
+              description: `Código de erro PostgreSQL: ${(error as any).code}`,
+            },
+          );
       }
     }
-    throw error;
+    throw new InternalServerErrorException('Ocorreu um erro inesperado no banco de dados.', {
+      cause: error,
+    });
   }
 
   async create(entity: DeepPartial<T>, options?: SaveOptions): Promise<T> {
@@ -61,7 +75,7 @@ export abstract class BaseTypeOrmRepository<T> {
       ...entity,
     });
     if (!updateEntity) {
-      throw new NotFoundException(`Record not found for ID: ${id}`);
+      return null;
     }
     try {
       return await this.repository.save(updateEntity, options);
@@ -101,6 +115,14 @@ export abstract class BaseTypeOrmRepository<T> {
   ): Promise<void> {
     try {
       await this.repository.delete(criteria);
+    } catch (error) {
+      this.handlePostgresError(error);
+    }
+  }
+
+  async clear(): Promise<void> {
+    try {
+      await this.repository.clear();
     } catch (error) {
       this.handlePostgresError(error);
     }

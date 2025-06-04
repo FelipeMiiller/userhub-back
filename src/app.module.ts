@@ -1,12 +1,12 @@
-import { Module } from '@nestjs/common';
-import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { ClassSerializerInterceptor, Module } from '@nestjs/common';
+import { APP_GUARD, APP_INTERCEPTOR, Reflector } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { LoggerModule } from './common/loggers/logger.module';
 import { UsersModule } from './modules/users/users.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
-import { MongooseModule } from '@nestjs/mongoose';
+
 import mongoConfig from './config/mongo.config';
 import slackConfig from './config/slack.config';
 import { pathEnv } from './config/pathEnv';
@@ -20,13 +20,15 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { redisStore } from 'cache-manager-redis-yet';
 import { ScheduleModule } from '@nestjs/schedule';
 import { LastActivityInterceptor } from './common/interceptors/last-activity.interceptor';
+import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 
 import { User } from './modules/users/domain/models/users.models';
 import { SchedulesModule } from './common/schedules/schedules.module';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
 @Module({
   imports: [
-    SchedulesModule,
+    ...(process.env.NODE_ENV !== 'test' ? [SchedulesModule] : []),
     ThrottlerModule.forRoot([
       {
         name: 'default',
@@ -43,6 +45,12 @@ import { SchedulesModule } from './common/schedules/schedules.module';
       isGlobal: true,
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => {
+        if (process.env.NODE_ENV === 'test') {
+          return {
+            store: 'none' as any, // Use 'none' for test environment
+            ttl: 0, // Provide a default ttl for 'none' store to satisfy types
+          };
+        }
         const store = await redisStore({
           socket: {
             host: configService.get('redis.host'),
@@ -66,12 +74,6 @@ import { SchedulesModule } from './common/schedules/schedules.module';
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => configService.get('typeorm'),
     }),
-    MongooseModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        uri: configService.get<string>('mongo.uri'),
-      }),
-    }),
     LoggerModule,
     UsersModule,
     AuthModule,
@@ -79,9 +81,23 @@ import { SchedulesModule } from './common/schedules/schedules.module';
 
   controllers: [AppController],
   providers: [
+    ...(process.env.NODE_ENV !== 'test' ? [{ provide: APP_GUARD, useClass: ThrottlerGuard }] : []),
     {
-      provide: APP_GUARD,
-      useClass: ThrottlerGuard,
+      provide: APP_INTERCEPTOR,
+      useFactory: (reflector: Reflector) =>
+        new ClassSerializerInterceptor(reflector, {
+          strategy: 'exposeAll',
+          excludeExtraneousValues: false,
+        }),
+      inject: [Reflector],
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: TransformInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: LoggingInterceptor,
     },
     {
       provide: APP_INTERCEPTOR,

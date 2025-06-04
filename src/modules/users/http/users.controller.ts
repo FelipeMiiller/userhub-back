@@ -82,7 +82,7 @@ export class UsersController {
   @UseInterceptors(CacheInterceptor)
   @CacheTTL(300)
   @RolesGuards([Roles.ADMIN])
-  @Get('inactive') // Specific route moved before generic :id route
+  @Get('inactive')
   @ApiOperation({ summary: 'Lista usuários inativos (sem login recente)' })
   @ApiQuery({
     name: 'days',

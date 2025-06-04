@@ -7,7 +7,7 @@ import { AuthController } from './http/auth.controller';
 import { AuthService } from './domain/auth.service';
 import { JwtAuthGuard } from './domain/guards/jwt-auth.guard';
 import { RolesGuard } from './domain/guards/roles.guard';
-import { GoogleOauthUserStrategy } from './domain/strategies/googleAuthUser.stategy';
+import { GoogleOauthUserStrategy } from './domain/strategies/googleAuthUser.strategy';
 import { LocalUserStrategy } from './domain/strategies/local_user.strategy';
 import refreshJwtConfig from 'src/config/refresh-jwt.config';
 import googleOauthConfig from 'src/config/google.oauth.config';

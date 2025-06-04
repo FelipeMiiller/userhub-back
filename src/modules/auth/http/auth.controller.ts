@@ -23,7 +23,7 @@ import { GoogleUserAuthGuard } from '../domain/guards/googleUser-auth.guard';
 import { RefreshAuthGuard } from '../domain/guards/refresh-auth.guard';
 import { JwtAuthGuard } from '../domain/guards/jwt-auth.guard';
 import { instanceToPlain } from 'class-transformer';
-import { Roles } from 'src/modules/users/domain/models/users.models';
+import { Roles, User } from 'src/modules/users/domain/models/users.models';
 import { UserOutput } from 'src/modules/users/http/dtos/output-users.dto';
 import { UserInputAuth } from './dto/create-users.dto';
 
@@ -40,15 +40,13 @@ export class AuthController {
   @HttpCode(HttpStatus.CREATED)
   @Public()
   @Post('signup')
-  async create(@Body() userDto: UserInputAuth): Promise<UserOutput> {
+  async create(@Body() userDto: UserInputAuth): Promise<User> {
     const user = await this.usersService.create({
       ...userDto,
       Role: Roles.USER,
     });
 
-    delete user.LastLoginAt;
-
-    return instanceToPlain(user) as UserOutput;
+    return user;
   }
 
   @Public()
@@ -95,16 +93,10 @@ export class AuthController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Get('me')
-  async getUser(@Req() req: Request): Promise<UserOutput> {
+  async getUser(@Req() req: Request): Promise<User> {
     const { sub }: Payload = req['user'];
     const user = await this.usersService.findOneById(sub);
 
-    if (!user) {
-      throw new NotFoundException(`User not found`);
-    }
-
-   // delete user.LastLoginAt;
-
-    return instanceToPlain(user) as UserOutput;
+    return user;
   }
 }

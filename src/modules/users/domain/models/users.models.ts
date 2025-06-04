@@ -22,5 +22,8 @@ export class User {
 
   constructor(partial: Partial<User>) {
     Object.assign(this, partial);
+    if (this.LastLoginAt === null) {
+      this.LastLoginAt = undefined; // Ensures LastLoginAt is omitted if null
+    }
   }
 }

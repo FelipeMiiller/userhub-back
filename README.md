@@ -57,7 +57,7 @@ API robusta e escalável construída com **NestJS + TypeScript**, autenticação
 - Endpoint para listar usuários sem login há 30 dias
 
 ### 5. Logging Estruturado e Auditoria
-- Logs em console, MongoDB e Slack
+- Logs em console,  Slack
 - Logger configurável: persistência e alerta por Slack
 - Exemplo:
 ```typescript
