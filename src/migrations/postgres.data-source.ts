@@ -9,7 +9,7 @@ export const config = {
   host: process.env.TYPEORM_HOST || 'localhost',
   username: process.env.TYPEORM_USERNAME || 'postgres',
   password: process.env.TYPEORM_PASSWORD || 'postgres',
-  database: process.env.TYPEORM_DATABASE || 'test_db',
+  database: process.env.TYPEORM_DATABASE || 'userhub',
   port: +(process.env.TYPEORM_PORT || 5432),
   entities: [UserEntity],
   migrations: [CreateUsersTable1723809312769],
