@@ -17,8 +17,10 @@
     "start:dev": " nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
-    "migrate": "dotenv -e .env -- npx typeorm migration:run -d dist/src/migrations/postgres.data-source.js",
-    "migration:test": "dotenv -e .env.test -- npx typeorm migration:run -d dist/src/migrations/postgres.data-source.js",
+    "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js",
+    "migration:run": "yarn typeorm migration:run -d src/migrations/postgres.data-source.ts",
+    "migration:revert": "yarn typeorm migration:revert",
+    "migration:test": "dotenv -e .env.test -- yarn typeorm migration:run -d src/migrations/postgres.data-source.ts",
     "test": "dotenv -e .env.test -- jest",
     "test:watch": "dotenv -e .env.test -- jest --watch",
     "test:cov": "dotenv -e .env.test -- jest --coverage",
@@ -26,6 +28,9 @@
     "test:e2e": "dotenv -e .env.test -- jest   --config ./test/jest-e2e.json",
     "test:dev": "dotenv -e .env.test -- jest --all",
     "test:all": "jest --all"
+
+
+    
   },
   "engines": {
     "node": "22.16.0"
@@ -37,7 +42,6 @@
     "@nestjs/core": "^11.1.0",
     "@nestjs/event-emitter": "^3.0.1",
     "@nestjs/jwt": "^11.0.0",
-
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.1.0",
     "@nestjs/schedule": "^6.0.0",
@@ -51,7 +55,6 @@
     "cache-manager-redis-yet": "^5.1.5",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
-  
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
     "passport-jwt": "^4.0.1",
@@ -71,7 +74,7 @@
     "@types/express": "^5.0.1",
     "@types/jest": "^29.5.14",
     "@types/multer": "^1.4.11",
-    "@types/node": "^22.15.17",
+    "@types/node": "^22.15.29",
     "@types/passport-jwt": "^4.0.1",
     "@types/passport-local": "^1.0.38",
     "@types/supertest": "^6.0.0",
