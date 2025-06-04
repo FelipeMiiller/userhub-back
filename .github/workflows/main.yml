@@ -78,11 +78,44 @@ jobs:
        
       - name: Run migrations
         run: |
+          # Criar arquivo .env para as migrações
+          cat > .env << EOL
+          # APP
+          PORT=3000
+          NODE_ENV=development
+          FRONTEND_URL=http://localhost:3000
+          
+          # JWT
+          JWT_SECRET=test-secret
+          JWT_EXPIRATION=1h
+          JWT_REFRESH_SECRET=test-refresh-secret
+          JWT_REFRESH_EXPIRATION=7d
+          
+          # TYPEORM
+          TYPEORM_TYPE=postgres
+          TYPEORM_HOST=localhost
+          TYPEORM_USERNAME=postgres
+          TYPEORM_PASSWORD=postgres
+          TYPEORM_DATABASE=userhub
+          TYPEORM_PORT=5432
+          
+          # REDIS
+          REDIS_HOST=localhost
+          REDIS_PORT=6379
+          EOL
+          
+          # Executar migrações
           yarn migration:run
-          # ou yarn migration:run dependendo do seu script
+          
+      - name: Run migrations for tests
+        run: |
+       
+          yarn migration:test
           
       - name: Run all tests
-        run: yarn test:all
+        run: |
+       
+          yarn test:all
        
       - name: Deploy to Render
         if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
