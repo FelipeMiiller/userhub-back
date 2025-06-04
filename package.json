@@ -27,7 +27,7 @@
     "test:all": "dotenv -e .env.test -- jest --all"
   },
   "engines": {
-    "node": "22.19.2"
+    "node": "22.16.0"
   },
   "dependencies": {
     "@nestjs/cache-manager": "^3.0.1",
