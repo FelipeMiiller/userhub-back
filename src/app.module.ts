@@ -53,8 +53,8 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
           socket: {
             host: configService.get('redis.host'),
             port: Number(configService.get('redis.port')),
-            password: configService.get('redis.password'),
           },
+          password: configService.get('redis.password'),
         });
         return {
           store,
