@@ -45,10 +45,6 @@ jobs:
       - name: Wait for services
         run: sleep 10
        
-      - name: Create databases
-        run: |
-          PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -c "CREATE DATABASE userhub;"
-          PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -c "CREATE DATABASE test_db;"
        
       - name: Install dependencies
         run: yarn --frozen-lockfile
@@ -72,7 +68,7 @@ jobs:
           TYPEORM_HOST=localhost
           TYPEORM_USERNAME=postgres
           TYPEORM_PASSWORD=postgres
-          TYPEORM_DATABASE=test_db  # Using test_db for tests
+          TYPEORM_DATABASE=test_db  
           TYPEORM_PORT=5432
                      
           # REDIS

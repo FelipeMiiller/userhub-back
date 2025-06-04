@@ -16,7 +16,7 @@ import { AppController } from './app.controller';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { CacheModule } from '@nestjs/cache-manager';
 import { redisStore } from 'cache-manager-redis-yet';
-import { ScheduleModule } from '@nestjs/schedule';
+
 import { LastActivityInterceptor } from './common/interceptors/last-activity.interceptor';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 
@@ -64,7 +64,7 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
     ConfigModule.forRoot({
       envFilePath: [pathEnv],
       isGlobal: true,
-      load: [appConfig, typeormConfig, mongoConfig, slackConfig, redisConfig],
+      load: [appConfig, typeormConfig, slackConfig, redisConfig],
     }),
     TypeOrmModule.forFeature([User]),
     EventEmitterModule.forRoot(),
