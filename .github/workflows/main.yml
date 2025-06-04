@@ -33,7 +33,7 @@ jobs:
         uses: harmon758/postgresql-action@v1
         with:
           postgresql version: '17'
-          postgresql db: 'postgres'  
+          postgresql db: 'test_db'  
           postgresql user: 'postgres'
           postgresql password: 'postgres'
        
@@ -84,7 +84,7 @@ jobs:
         run: |
           yarn migration:run
           # ou yarn migration:run dependendo do seu script
-       
+          
       - name: Run all tests
         run: yarn test:all
        

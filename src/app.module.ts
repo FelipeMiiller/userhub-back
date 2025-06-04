@@ -6,8 +6,6 @@ import { UsersModule } from './modules/users/users.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
-
-import mongoConfig from './config/mongo.config';
 import slackConfig from './config/slack.config';
 import { pathEnv } from './config/pathEnv';
 import appConfig from './config/app.config';
