@@ -14,42 +14,76 @@ on:
       - master
 
 jobs:
-
   build:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [22.12.0]
-        mongodb-version: ['8.0']
-      
-
+        node-version: [22.16.0]
+        
     steps:
       - name: Git checkout
         uses: actions/checkout@v4
-
+       
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-
+       
       - name: Start PostgreSQL
         uses: harmon758/postgresql-action@v1
         with:
           postgresql version: '17'
-          postgresql db: 'testdb'
-
-
+          postgresql db: 'userhub'  
+          postgresql user: 'postgres'
+          postgresql password: 'postgres'
+       
       - name: Start Redis
         uses: supercharge/redis-github-action@1.8.0
         with:
           redis-version: '7.2.4'
-
+                 
+      - name: Wait for services
+        run: sleep 10
+       
+       
       - name: Install dependencies
         run: yarn --frozen-lockfile
-
+               
+      - name: Create test env file
+        run: |
+          cat > .env.test << EOL
+          # APP
+          PORT=3000
+          NODE_ENV=test
+          FRONTEND_URL=http://localhost:3000
+                     
+          # JWT
+          JWT_SECRET=test-secret
+          JWT_EXPIRATION=1h
+          JWT_REFRESH_SECRET=test-refresh-secret
+          JWT_REFRESH_EXPIRATION=7d
+                     
+          # TYPEORM
+          TYPEORM_TYPE=postgres
+          TYPEORM_HOST=localhost
+          TYPEORM_USERNAME=postgres
+          TYPEORM_PASSWORD=postgres
+          TYPEORM_DATABASE=test_db  
+          TYPEORM_PORT=5432
+                     
+          # REDIS
+          REDIS_HOST=localhost
+          REDIS_PORT=6379
+          EOL
+       
+      - name: Run migrations
+        run: |
+          yarn migration:run
+          # ou yarn migration:run dependendo do seu script
+          
       - name: Run all tests
         run: yarn test:all
-
+       
       - name: Deploy to Render
         if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
         uses: johnbeynon/render-deploy-action@v0.0.8

@@ -11,7 +11,7 @@ export const config = {
   port: +process.env.TYPEORM_PORT || 5432,
   entities: [UserEntity],
   migrations: [CreateUsersTable1723809312769],
-  synchronize: false,
+  synchronize:false,
   logging: process.env.NODE_ENV !== 'test',
   migrationsRun: false,
 
