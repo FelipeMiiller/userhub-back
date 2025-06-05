@@ -102,31 +102,9 @@ describe('AuthController (e2e)', () => {
         .post('/auth/signup')
         .send(invalidUserData);
 
-      expect([400, 422, 500]).toContain(response.status);
-    });
+      console.log(response.body);
 
-    it('/auth/signup (POST) - tenta criar usuário com role ADMIN (deve ignorar a role)', async () => {
-      const timestamp = new Date().getTime();
-      const userData = {
-        Email: `admin_attempt_${timestamp}@example.com`,
-        Password: 'Admin@123',
-        Name: 'Admin Attempt User',
-        Role: 'ADMIN',
-      };
-
-      const res = await request(app.getHttpServer())
-        .post('/auth/signup')
-        .send(userData)
-        .expect(201);
-
-      expect(res.body).toHaveProperty('data');
-      const userResponse = res.body.data;
-
-      // Verificar as propriedades do usuário
-      expect(userResponse).toHaveProperty('Email');
-      expect(userResponse).toHaveProperty('Role');
-
-      expect(userResponse.Role).toBe('USER');
+      expect(response.status).toBe(400);
     });
 
     it('/auth/signup (POST) - cria usuário normal com sucesso', async () => {

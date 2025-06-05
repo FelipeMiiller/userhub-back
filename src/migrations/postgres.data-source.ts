@@ -10,12 +10,32 @@ export const config = {
   username: process.env.TYPEORM_USERNAME || 'postgres',
   password: process.env.TYPEORM_PASSWORD || 'postgres',
   database: process.env.TYPEORM_DATABASE || 'userhub',
-  port: +(process.env.TYPEORM_PORT || 5432),
+  port: +process.env.TYPEORM_PORT || 5432,
   entities: [UserEntity],
   migrations: [CreateUsersTable1723809312769],
   synchronize: false,
   logging: process.env.NODE_ENV !== 'test',
-  migrationsRun: true,
+  migrationsRun: false,
+  ssl: process.env.TYPEORM_SSL === 'true',
+  extra: {
+    ssl:
+      process.env.TYPEORM_SSL === 'true'
+        ? {
+            rejectUnauthorized: false,
+          }
+        : undefined,
+  },
+  ...(process.env.NODE_ENV === 'test'
+    ? {
+        dropSchema: false,
+        keepConnectionAlive: false,
+        maxQueryExecutionTime: 1000,
+        extra: {
+          poolSize: 5,
+          max: 5,
+        },
+      }
+    : {}),
 };
 
 export const AppDataSource = new DataSource(config as DataSourceOptions);

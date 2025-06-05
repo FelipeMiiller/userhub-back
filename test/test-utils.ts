@@ -2,7 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { AppModule } from '../src/app.module';
-import { TransformInterceptor } from '../src/common/interceptors/transform.interceptor';
 
 export async function setupTestApp(): Promise<{
   app: INestApplication;
@@ -14,8 +13,6 @@ export async function setupTestApp(): Promise<{
   }).compile();
 
   const app = moduleFixture.createNestApplication();
-  app.useGlobalPipes(new ValidationPipe({ transform: true }));
-
   await app.init();
 
   const dataSource = app.get(DataSource);

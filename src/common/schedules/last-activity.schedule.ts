@@ -13,7 +13,7 @@ export class LastActivityService {
     private usersService: UsersService,
   ) {}
 
-  @Cron('*/1 * * * *')
+  @Cron('*/30 * * * *')
   async syncLastLoginTimestamps() {
     console.log('🔄 Sincronizando dados de lastLoginAt do Redis para o banco...');
 
@@ -32,7 +32,7 @@ export class LastActivityService {
         await this.cacheManager.del(key);
       }
     }
-
+    
     await this.cacheManager.del('user:loginQueue');
   }
 }

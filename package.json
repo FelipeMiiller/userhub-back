@@ -16,7 +16,7 @@
     "prestart:dev": "yarn clean && yarn format ",
     "start:dev": " nest start --watch",
     "start:debug": "nest start --debug --watch",
-    "start:prod": "node dist/main",
+    "start:prod": "node dist/src/main",
     "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js",
     "migration:run": "yarn typeorm migration:run -d src/migrations/postgres.data-source.ts",
     "migration:revert": "yarn typeorm migration:revert",

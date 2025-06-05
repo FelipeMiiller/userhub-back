@@ -2,7 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   InternalServerErrorException,
-  NotFoundException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import {
   DeepPartial,
@@ -14,6 +14,15 @@ import {
   SaveOptions,
 } from 'typeorm';
 
+interface PostgresError {
+  code: string;
+  detail?: string;
+  constraint?: string;
+  table?: string;
+  column?: string;
+  [key: string]: any;
+}
+
 /**
  * BaseTypeOrmRepository<T> centraliza tratamento de erros comuns do PostgreSQL/TypeORM.
  * Herde esta classe nos repositórios específicos para DRY e padronização.
@@ -23,34 +32,34 @@ export abstract class BaseTypeOrmRepository<T> {
 
   protected handlePostgresError(error: unknown): never {
     if (typeof error === 'object' && error !== null && 'code' in error) {
-      switch ((error as any).code) {
+      const pgError = error as PostgresError;
+      switch (pgError.code) {
         case '23505':
           throw new ConflictException('Registro duplicado.', {
-            cause: error,
+            cause: pgError,
             description: 'Já existe registro com os dados informados.',
           });
         case '23502':
           throw new BadRequestException('Campo obrigatório não informado.', {
-            cause: error,
+            cause: pgError,
             description: 'Verifique os campos obrigatórios.',
           });
         case '23503':
           throw new BadRequestException('Relacionamento inválido.', {
-            cause: error,
+            cause: pgError,
             description: 'Verifique as chaves estrangeiras.',
           });
         case '23514':
-          throw new BadRequestException('Valor inválido para um dos campos.', {
-            cause: error,
+          throw new UnprocessableEntityException('Valor inválido para um dos campos.', {
+            cause: pgError,
             description: 'Verifique as restrições dos campos.',
           });
         default:
-        
           throw new InternalServerErrorException(
             'Ocorreu um erro desconhecido no banco de dados.',
             {
-              cause: error,
-              description: `Código de erro PostgreSQL: ${(error as any).code}`,
+              cause: pgError,
+              description: `Código de erro PostgreSQL: ${pgError.code}`,
             },
           );
       }

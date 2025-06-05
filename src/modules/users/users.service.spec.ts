@@ -8,7 +8,7 @@ import { LoggerService } from 'src/common/loggers/domain/logger.service';
 import { UserInput } from './http/dtos/create-users.dto';
 import { Roles, User } from './domain/models/users.models';
 import * as argon2 from 'argon2';
-import { UserCreatedEvent } from 'src/common/events/user-created.event';
+
 
 // Mock argon2
 jest.mock('argon2');
@@ -196,10 +196,10 @@ describe('UsersService', () => {
       sinceDate.setDate(sinceDate.getDate() - 30);
 
       expect(mockUsersRepository.findMany).toHaveBeenCalledWith({
-        where: [{ LastLoginAt: null }, { LastLoginAt: expect.anything() }], 
+        where: [{ LastLoginAt: null }, { LastLoginAt: expect.anything() }],
         order: { LastLoginAt: 'ASC' },
       });
-   
+
       const callArg = mockUsersRepository.findMany.mock.calls[0][0];
       expect(callArg.where[1].LastLoginAt.value.getTime()).toBeLessThanOrEqual(sinceDate.getTime());
       expect(result).toEqual([inactiveUser]);
