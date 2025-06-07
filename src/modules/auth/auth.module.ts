@@ -15,6 +15,7 @@ import { RefreshStrategy } from './domain/strategies/refresh.strategy';
 import { JwtStrategy } from './domain/strategies/jwt.strategy';
 import { UsersModule } from '../users/users.module';
 import { PassportModule } from '@nestjs/passport';
+import { IpWhitelistGuard } from './domain/guards/ip-whitelist.guard';
 
 @Global()
 @Module({
@@ -41,6 +42,10 @@ import { PassportModule } from '@nestjs/passport';
     {
       provide: APP_GUARD,
       useClass: RolesGuard, //@Roles([UserRoles.Administrador]) applied on all API endppints
+    },
+    {
+      provide: APP_GUARD, //@AllowedIps(['127.0.0.1']) applied on all API endppints
+      useClass: IpWhitelistGuard,
     },
   ],
   exports: [AuthService],

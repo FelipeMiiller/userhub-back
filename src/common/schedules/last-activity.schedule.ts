@@ -32,7 +32,7 @@ export class LastActivityService {
         await this.cacheManager.del(key);
       }
     }
-    
+
     await this.cacheManager.del('user:loginQueue');
   }
 }

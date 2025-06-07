@@ -9,4 +9,8 @@ services:
         value: production
       - key: PORT
         value: 10000
-     
+    healthCheck:
+      path: "/health/lb"
+      interval: 30
+      timeout: 10
+    

@@ -9,7 +9,6 @@ import { UserInput } from './http/dtos/create-users.dto';
 import { Roles, User } from './domain/models/users.models';
 import * as argon2 from 'argon2';
 
-
 // Mock argon2
 jest.mock('argon2');
 

@@ -11,11 +11,29 @@ API  construída com **NestJS + TypeScript**, autenticação JWT, controle de us
 ## ⚡ Funcionalidades 
 
 ### 1. Autenticação de Usuários
-- Rotas:
-  - `POST /auth/register` — Cadastro
-  - `POST /auth/login` — Login
-- JWT para autenticação
-- (Opcional) OAuth Google/Microsoft
+- Autenticação JWT com os seguintes endpoints:
+  - `POST /auth/signup` — Cadastro de usuário
+  - `POST /auth/signin` — Login com email/senha
+  - `POST /auth/google/signin` — Login com Google
+  - `POST /auth/google/callback` — Callback do Google OAuth
+  - `POST /auth/refreshToken` — Refresh token
+  - `POST /auth/signout` — Logout
+  - `GET /auth/me` — Informações do usuário logado
+
+### Configura es necess rias no Google Console
+
+- No Google Cloud Console, criar um projeto e ativar a API Google Sign-In.
+- Em "APIs & Services" > "Dashboard", criar um "OAuth client ID" do tipo "Web application".
+- Adicionar a URL do seu projeto, por exemplo: `http://localhost:3005`
+- Configurar as variáveis de ambiente no arquivo `.env`:
+  ```
+  GOOGLE_CLIENT_ID=seu_client_id
+  GOOGLE_SECRET=seu_client_secret
+  GOOGLE_CALLBACK_USER_URL=api/auth/google/callback
+  ```
+
+![Configuracao Google](./assets/cloud.png)
+
 
 ### 2. Gerenciamento e CRUD de Usuários
 - Rotas:
@@ -40,14 +58,33 @@ API  construída com **NestJS + TypeScript**, autenticação JWT, controle de us
 - Logger configurável: persistência e alerta por Slack
 - Exemplo:
 ```typescript
-logger.error('Falha ao salvar usuário', { payload }, { auditable: true, slack: true, userId });
+logger.error('Falha ao salvar usuário', { payload }, { slack: true, userId });
 ```
 
 ### 6. Documentação, Testes e Deploy
 - Swagger em `/api/docs`
 - Testes com Jest (`yarn test`)
-- Docker Compose para ambiente local (Postgres, Mongo, Redis)
+- Docker Compose para ambiente local (Postgres, Redis)
 - Deploy automatizado com Render (CI/CD)
+
+### 7. Health Check
+O sistema oferece diferentes endpoints de health check:
+- **`/health/lb`** - Health check para load balancer (recomendado para Render)
+  - Tem restrições de IP além do local (127.0.0.1 e ::1)
+  - Tem throttling para IPs externos
+  - Retorna um status básico rápido
+- **`/health/internal`** - Health check interno (apenas rede interna)
+  - Apenas IPs da rede interna (192.168.0.0/16, 10.0.0.0/8)
+  - Sem throttling
+- **`/health/detailed`** - Health check detalhado
+  - Retorna informações completas sobre o sistema
+  - Inclui status de serviços dependentes
+  - Com throttling para IPs externos
+
+A configuração do Render utiliza o endpoint `/health/lb` com:
+- Intervalo: 30 segundos
+- Timeout: 10 segundos
+- Sem restrições de IP além do local
 
 ## 🔐 Segurança
 - JWT, roles, validação, tratamento de erros
@@ -56,7 +93,6 @@ logger.error('Falha ao salvar usuário', { payload }, { auditable: true, slack: 
 - `DATABASE_URL`, `REDIS_URL`, `JWT_SECRET`, `SLACK_WEBHOOK_URL`, etc.
 
 ---
-
 
 
 O projeto utiliza **ULID** (Universally Unique Lexicographically Sortable Identifier) como identificador único para entidades principais, em substituição ao UUID tradicional. ULIDs são ordenáveis por tempo, seguros para uso distribuído e facilitam queries e ordenação no banco de dados.

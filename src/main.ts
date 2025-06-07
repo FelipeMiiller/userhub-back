@@ -6,7 +6,6 @@ import { LoggerService } from './common/loggers/domain/logger.service';
 import { AppModule } from './app.module';
 import appConfig from './config/app.config';
 
-
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const env: ConfigType<typeof appConfig> = app.get(ConfigService).get('app');
@@ -15,14 +14,11 @@ async function bootstrap() {
   logger.contextName = bootstrap.name;
 
   app.enableCors({
-    origin: (origin, callback) => {
-      if (!origin) return callback(null, true);
-      if (origin === env.frontendUrl) return callback(null, true);
-      return callback(new Error('Not allowed by CORS'), false);
-    },
+    origin: [env.origin, ...env.accessibleIps],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
   });
-
   const configSwagger = new DocumentBuilder()
     .setTitle('UserHub')
     .setDescription('API para gerenciamento de usuários')
@@ -32,15 +28,6 @@ async function bootstrap() {
 
   const document = SwaggerModule.createDocument(app, configSwagger);
   SwaggerModule.setup('api', app, document);
-
-  app.useGlobalPipes(
-   
-  );
-  // app.useGlobalInterceptors(
-  //   new ClassSerializerInterceptor(app.get(Reflector)),
-  //   new TransformInterceptor(),
-  //   new LoggingInterceptor(logger),
-  // );
 
   app.enableShutdownHooks();
 
