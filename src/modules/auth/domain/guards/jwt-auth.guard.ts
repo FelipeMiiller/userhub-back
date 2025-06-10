@@ -5,12 +5,15 @@ import type { Request } from 'express';
 import { IS_PUBLIC_KEY } from 'src/modules/auth/domain/decorator/public.decorator';
 import { AuthService } from '../auth.service';
 import { JsonWebTokenError, TokenExpiredError } from 'jsonwebtoken'; // Importar tipos de erro
+import { SKIP_THROTTLE_FOR_IP_KEY } from 'src/common/throttler/domain/decorators/skip-throttle.decorator';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
   constructor(
     private reflector: Reflector,
     private authService: AuthService,
+    private configService: ConfigService,
   ) {
     super();
   }
@@ -20,12 +23,14 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       context.getHandler(),
       context.getClass(),
     ]);
+
     if (isPublic) {
       return true;
     }
 
     const request = context.switchToHttp().getRequest();
     const token = this.extractTokenFromHeader(request);
+
     if (!token) {
       throw new UnauthorizedException('Token not found');
     }

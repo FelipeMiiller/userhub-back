@@ -6,7 +6,6 @@ import { AuthService } from '../auth.service';
 import { userGoogleStrategy } from '../guards/googleUser-auth.guard';
 import { GoogleProfile } from '../types';
 import googleOauthConfig from 'src/config/google.oauth.config';
-import { LoggerService } from 'src/common/loggers/domain/logger.service';
 
 @Injectable()
 export class GoogleOauthUserStrategy extends PassportStrategy(Strategy, userGoogleStrategy) {
@@ -29,8 +28,6 @@ export class GoogleOauthUserStrategy extends PassportStrategy(Strategy, userGoog
     done: VerifyCallback,
   ) {
     try {
-      console.log('Google Profile recebido:', JSON.stringify(profile, null, 2));
-
       let email = null;
       if (profile.emails && profile.emails.length > 0) {
         email = profile.emails[0].value;
@@ -40,11 +37,8 @@ export class GoogleOauthUserStrategy extends PassportStrategy(Strategy, userGoog
         email = profile.email;
       }
 
-      console.log('Email extraído:', email);
-
       if (!email) {
-        console.error('Email não encontrado no perfil do Google');
-        return done(new UnauthorizedException('Email from Google profile is required'), null);
+        return done(new UnauthorizedException('Email do Google profile é obrigatório'), null);
       }
 
       const primeiroNome =
@@ -64,7 +58,7 @@ export class GoogleOauthUserStrategy extends PassportStrategy(Strategy, userGoog
 
       return done(null, user);
     } catch (error) {
-      console.error('Erro na validação do Google OAuth:', error);
+      console.error('Erro na validação do Google OAuth:');
       return done(error, null);
     }
   }

@@ -18,8 +18,7 @@ export class CreateUsersTable1723809312769 implements MigrationInterface {
         "AvatarUrl" varchar(255),
         "LastLoginAt" TIMESTAMP WITH TIME ZONE NULL,
         "CreatedAt" TIMESTAMP WITH TIME ZONE DEFAULT now(),
-        "UpdatedAt" TIMESTAMP WITH TIME ZONE DEFAULT now()
-      );
+        "UpdatedAt" TIMESTAMP WITH TIME ZONE DEFAULT now());
       CREATE INDEX "IDX_Users_LastLoginAt" ON "Users" ("LastLoginAt");
       CREATE INDEX "IDX_Users_Email" ON "Users" ("Email");
       CREATE INDEX "IDX_Users_HashRefreshToken" ON "Users" ("HashRefreshToken");

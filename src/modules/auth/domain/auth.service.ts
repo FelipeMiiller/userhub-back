@@ -68,19 +68,19 @@ export class AuthService {
     if (!user) {
       const randomPassword = crypto.randomBytes(32).toString('hex');
       user = await this.usersService.create({
-        Email: email,
+        Email: email.toLowerCase(),
         Password: randomPassword,
-        Name: primeiroNome,
-        LastName: segundoNome || null,
+        Name: primeiroNome.toLowerCase(),
+        LastName: segundoNome.toLowerCase() || null,
         AvatarUrl: avatarUrl || null,
         Role: Roles.USER,
       });
-    } else {
-      if (!user.AvatarUrl && avatarUrl) {
-        user = await this.usersService.update(user.Id, {
-          AvatarUrl: avatarUrl,
-        });
-      }
+    }
+
+    if (!user.AvatarUrl && avatarUrl) {
+      user = await this.usersService.update(user.Id, {
+        AvatarUrl: avatarUrl,
+      });
     }
 
     if (!user) {

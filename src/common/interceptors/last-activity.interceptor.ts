@@ -9,12 +9,14 @@ import {
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { Observable } from 'rxjs';
+import { LoggerService } from '../loggers/domain/logger.service';
 
 @Injectable()
 export class LastActivityInterceptor implements NestInterceptor {
-  private readonly logger = new Logger(LastActivityInterceptor.name);
-
-  constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
+  constructor(
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    private loggerService: LoggerService,
+  ) {}
 
   async intercept(context: ExecutionContext, next: CallHandler): Promise<Observable<any>> {
     try {
@@ -26,7 +28,7 @@ export class LastActivityInterceptor implements NestInterceptor {
           const key = `user:lastLogin:${user.sub}`;
           const now = new Date().toISOString();
 
-          await this.cacheManager.set(key, now, 60 * 60 * 24);
+          await this.cacheManager.set(key, now, 60 * 30);
 
           const existingIds = (await this.cacheManager.get<string[]>('user:loginQueue')) || [];
           if (!existingIds.includes(user.sub)) {
@@ -34,15 +36,19 @@ export class LastActivityInterceptor implements NestInterceptor {
             await this.cacheManager.set('user:loginQueue', existingIds, 60 * 60 * 24);
           }
 
-          this.logger.debug(`Atualizada última atividade para usuário ${user.sub}`);
+          this.loggerService.debug(`Atualizada última atividade para usuário ${user.sub}`);
         } catch (cacheError) {
           // Não falhar a requisição se o cache não estiver disponível
-          this.logger.warn(`Erro ao atualizar cache de atividade: ${cacheError.message}`);
+          this.loggerService.warn(`Erro ao atualizar cache de atividade: ${cacheError.message}`, {
+            slack: true,
+          });
         }
       }
     } catch (error) {
       // Não falhar a requisição se houver qualquer erro no interceptor
-      this.logger.error(`Erro no interceptor de atividade: ${error.message}`);
+      this.loggerService.error(`Erro no interceptor de atividade: ${error.message}`, {
+        slack: true,
+      });
     }
 
     return next.handle();

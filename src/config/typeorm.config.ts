@@ -14,7 +14,15 @@ export const config = {
   synchronize: false,
   logging: process.env.NODE_ENV !== 'test',
   migrationsRun: false,
-
+  ssl: process.env.TYPEORM_SSL === 'true',
+  extra: {
+    ssl:
+      process.env.TYPEORM_SSL === 'true'
+        ? {
+            rejectUnauthorized: false,
+          }
+        : undefined,
+  },
   ...(process.env.NODE_ENV === 'test'
     ? {
         dropSchema: false,

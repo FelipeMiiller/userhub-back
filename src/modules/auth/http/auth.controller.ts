@@ -22,13 +22,11 @@ import { Login, Payload } from '../domain/types';
 import { GoogleUserAuthGuard } from '../domain/guards/googleUser-auth.guard';
 import { RefreshAuthGuard } from '../domain/guards/refresh-auth.guard';
 import { JwtAuthGuard } from '../domain/guards/jwt-auth.guard';
-import { instanceToPlain } from 'class-transformer';
 import { Roles, User } from 'src/modules/users/domain/models/users.models';
-import { UserOutput } from 'src/modules/users/http/dtos/output-users.dto';
 import { UserInputAuth } from './dto/create-users.dto';
+import { UserInputSignin } from './dto/signin-users.dto';
 
 @ApiTags('auth')
-@UseGuards(JwtAuthGuard)
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -53,7 +51,7 @@ export class AuthController {
   @UseGuards(LocalUserAuthGuard)
   @Post('signin')
   @HttpCode(HttpStatus.OK)
-  async loginUser(@Req() req: Request): Promise<Login> {
+  async loginUser(@Req() req: Request, @Body() userDto: UserInputSignin): Promise<Login> {
     return this.authService.loginUser(req['user']);
   }
 
@@ -94,8 +92,11 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Get('me')
   async getUser(@Req() req: Request): Promise<User> {
-    const { sub }: Payload = req['user'];
+    const { sub, email }: Payload = req['user'];
     const user = await this.usersService.findOneById(sub);
+    if (!user) {
+      throw new NotFoundException(`User not found ${email}`);
+    }
 
     return user;
   }

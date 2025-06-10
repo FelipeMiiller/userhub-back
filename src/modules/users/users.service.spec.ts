@@ -1,88 +1,61 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { INestApplication } from '@nestjs/common';
+import { DataSource, LessThanOrEqual } from 'typeorm';
 import { UsersService } from './domain/users.service';
-import {
-  USERS_REPOSITORY_TOKEN,
-  UsersRepository,
-} from './domain/repositories/users.repository.interface';
-import { LoggerService } from 'src/common/loggers/domain/logger.service';
 import { UserInput } from './http/dtos/create-users.dto';
 import { Roles, User } from './domain/models/users.models';
 import * as argon2 from 'argon2';
-import { UserCreatedEvent } from 'src/common/events/user-created.event';
-
-// Mock argon2
-jest.mock('argon2');
-
-const mockUsersRepository = {
-  create: jest.fn(),
-  update: jest.fn(),
-  findMany: jest.fn(),
-  findOne: jest.fn(),
-  delete: jest.fn(),
-};
-
-const mockLoggerService = {
-  contextName: '',
-  info: jest.fn(),
-  error: jest.fn(),
-  warn: jest.fn(),
-  debug: jest.fn(),
-};
-
-const mockUser: User = {
-  Id: '1',
-  Name: 'Test User',
-  Email: 'test@example.com',
-  Password: 'hashedPassword',
-  Role: Roles.USER,
-  CreatedAt: new Date(),
-  UpdatedAt: new Date(),
-  LastLoginAt: undefined,
-  HashRefreshToken: null,
-
-  LastName: null,
-  AvatarUrl: null,
-  Status: true,
-};
-
-const mockUserInput: UserInput = {
-  Name: 'Test User',
-  Email: 'test@example.com',
-  Password: 'password123',
-  Role: Roles.USER,
-};
+import { setupTestApp, teardownTestApp } from '../../../test/test-utils';
+import { USERS_REPOSITORY_TOKEN, UsersRepository } from './domain/repositories/users.repository.interface';
 
 describe('UsersService', () => {
+  let app: INestApplication;
   let service: UsersService;
+  let usersRepository: UsersRepository;
 
-  beforeAll(() => {
-    jest.useFakeTimers();
+  let testUser: User;
+
+  beforeAll(async () => {
+    try {
+      const testApp = await setupTestApp();
+      app = testApp.app;
+      service = app.get(UsersService);
+      
+      // Clear database before tests
+      usersRepository = app.get<UsersRepository>(USERS_REPOSITORY_TOKEN);
+      try {
+        await usersRepository.clear();
+      } catch (error) {
+        console.error('Erro ao limpar dados da tabela Users via repositório:', error);
+        throw error;
+      }
+  
+      console.clear();
+      
+      // Mock argon2.hash
+      jest.spyOn(argon2, 'hash').mockImplementation(() => 
+        Promise.resolve('hashedPassword')
+      );
+    } catch (error) {
+      console.error('Erro durante a configuração dos testes:', error);
+      throw error;
+    }
   });
 
-  afterAll(() => {
-    jest.useRealTimers();
+  afterAll(async () => {
+    await teardownTestApp(app);
   });
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        UsersService,
-        {
-          provide: USERS_REPOSITORY_TOKEN,
-          useValue: mockUsersRepository,
-        },
-        {
-          provide: LoggerService,
-          useValue: mockLoggerService,
-        },
-      ],
-    }).compile();
-
-    service = module.get<UsersService>(UsersService);
-    // Reset mocks before each test
-    jest.clearAllMocks();
-    (argon2.hash as jest.Mock).mockResolvedValue('hashedPassword');
+    // Create a test user before each test
+    testUser = await service.create({
+      Name: 'Test User',
+      Email: `test-${Date.now()}@example.com`,
+      Password: 'password123',
+      Role: Roles.USER,
+    });
   });
+
+ 
 
   it('deve estar definido', () => {
     expect(service).toBeDefined();
@@ -90,189 +63,215 @@ describe('UsersService', () => {
 
   describe('create', () => {
     it('deve criar um usuário com papel padrão se não fornecido', async () => {
-      const input: UserInput = { ...mockUserInput, Role: undefined };
-      mockUsersRepository.create.mockResolvedValueOnce(mockUser);
+      const input: UserInput = {
+        Name: 'New User',
+        Email: `new-${Date.now()}@example.com`,
+        Password: 'password123',
+        Role: undefined,
+      };
 
       const result = await service.create(input);
 
       expect(argon2.hash).toHaveBeenCalledWith(input.Password);
-      expect(mockUsersRepository.create).toHaveBeenCalledWith({
-        Name: input.Name,
-        Email: input.Email,
-        Password: 'hashedPassword',
-        Role: Roles.USER, // Default role
-        HashRefreshToken: null,
-      });
-      expect(result).toEqual(mockUser);
-      expect(result.Email).toEqual(input.Email);
+      expect(result).toBeDefined();
+      expect(result.Name).toBe(input.Name);
+      expect(result.Email).toBe(input.Email.toLowerCase());
+      expect(result.Role).toBe(Roles.USER); // Default role
+      expect(result.Password).not.toBe(input.Password); // Password should be hashed
     });
 
     it('deve criar um usuário com um papel especificado', async () => {
-      const input: UserInput = { ...mockUserInput, Role: Roles.ADMIN };
-      const userWithAdminRole = { ...mockUser, Role: Roles.ADMIN };
-      mockUsersRepository.create.mockResolvedValueOnce(userWithAdminRole);
+      const input: UserInput = {
+        Name: 'Admin User',
+        Email: `admin-${Date.now()}@example.com`,
+        Password: 'admin123',
+        Role: Roles.ADMIN,
+      };
 
       const result = await service.create(input);
 
       expect(argon2.hash).toHaveBeenCalledWith(input.Password);
-      expect(mockUsersRepository.create).toHaveBeenCalledWith({
-        Name: input.Name,
-        Email: input.Email,
-        Password: 'hashedPassword',
-        Role: Roles.ADMIN,
-        HashRefreshToken: null,
-      });
-      expect(result).toEqual(userWithAdminRole);
-      expect(result.Role).toEqual(Roles.ADMIN);
+      expect(result).toBeDefined();
+      expect(result.Role).toBe(Roles.ADMIN);
     });
   });
 
   describe('update', () => {
     it('deve atualizar um usuário com sucesso', async () => {
-      const userId = '1';
-      const updateData = { Name: 'Updated Name' };
-      const updatedUser = { ...mockUser, ...updateData };
-      mockUsersRepository.update.mockResolvedValueOnce(updatedUser);
+      const updateData = { 
+        Name: 'Updated Name',
+        Email: 'updated@example.com'
+      };
 
-      const result = await service.update(userId, updateData);
+      const result = await service.update(testUser.Id, updateData);
 
-      expect(mockUsersRepository.update).toHaveBeenCalledWith(userId, updateData);
-      expect(result).toEqual(updatedUser);
+      expect(result).toBeDefined();
+      expect(result.Id).toBe(testUser.Id);
+      expect(result.Name).toBe(updateData.Name);
+      expect(result.Email).toBe(updateData.Email.toLowerCase());
     });
 
     it('deve retornar nulo se o usuário a ser atualizado não for encontrado', async () => {
-      const userId = 'non-existent-id';
+      const nonExistentId = '00000000-0000-0000-0000-000000000000';
       const updateData = { Name: 'Updated Name' };
-      mockUsersRepository.update.mockResolvedValueOnce(null);
 
-      const result = await service.update(userId, updateData);
-
-      expect(mockUsersRepository.update).toHaveBeenCalledWith(userId, updateData);
+      const result = await service.update(nonExistentId, updateData);
+      
       expect(result).toBeNull();
     });
   });
 
   describe('findMany', () => {
-    it('deve encontrar usuários com opções padrão', async () => {
-      mockUsersRepository.findMany.mockResolvedValueOnce([mockUser]);
-      const result = await service.findMany({});
-      expect(mockUsersRepository.findMany).toHaveBeenCalledWith({
-        where: undefined,
-        order: { undefined: undefined }, // Reflects current implementation if sortBy/order are undefined
-      });
-      expect(result).toEqual([mockUser]);
+    let testUsers: User[] = [];
+    
+    beforeEach(async () => {
+      // Clear existing users
+      await usersRepository.clear();
+      
+      // Create test users with different roles
+      testUsers = await Promise.all([
+        service.create({
+          Name: 'User 1',
+          Email: `user1-${Date.now()}@example.com`,
+          Password: 'password123',
+          Role: Roles.USER,
+        }),
+        service.create({
+          Name: 'Admin User',
+          Email: `admin-${Date.now()}@example.com`,
+          Password: 'admin123',
+          Role: Roles.ADMIN,
+        }),
+        service.create({
+          Name: 'Aardvark User',
+          Email: `aardvark-${Date.now()}@example.com`,
+          Password: 'password123',
+          Role: Roles.USER,
+        })
+      ]);
     });
 
-    it('deve encontrar usuários com filtro de papel', async () => {
-      mockUsersRepository.findMany.mockResolvedValueOnce([mockUser]);
-      await service.findMany({ role: Roles.ADMIN });
-      expect(mockUsersRepository.findMany).toHaveBeenCalledWith({
-        where: { Role: Roles.ADMIN },
-        order: { undefined: undefined },
-      });
+    it('deve retornar todos os usuários', async () => {
+      const users = await service.findMany({});
+      expect(users.length).toBe(3);
     });
 
-    it('deve encontrar usuários com opções de ordenação e direção', async () => {
-      mockUsersRepository.findMany.mockResolvedValueOnce([mockUser]);
-      await service.findMany({ sortBy: 'CreatedAt', order: 'desc' });
-      expect(mockUsersRepository.findMany).toHaveBeenCalledWith({
-        where: undefined,
-        order: { CreatedAt: 'desc' },
-      });
+    it('deve filtrar usuários por função', async () => {
+      const adminUsers = await service.findMany({ role: Roles.ADMIN });
+      expect(adminUsers.length).toBe(1);
+      expect(adminUsers[0].Role).toBe(Roles.ADMIN);
+    });
+
+    it('deve ordenar usuários por nome', async () => {
+      const users = await service.findMany({ sortBy: 'Name', order: 'asc' });
+      
+      // Verify the array is sorted by name
+      const names = users.map(user => user.Name);
+      const sortedNames = [...names].sort();
+      expect(names).toEqual(sortedNames);
     });
   });
 
   describe('findInactive', () => {
     it('deve encontrar usuários inativos nos últimos 30 dias (padrão)', async () => {
-      const inactiveUser = {
-        ...mockUser,
-        LastLoginAt: new Date(Date.now() - 31 * 24 * 60 * 60 * 1000),
-      };
-      mockUsersRepository.findMany.mockResolvedValueOnce([inactiveUser]);
+      // First create a user
+      const user = await service.create({
+        Name: 'Inactive User',
+        Email: `inactive-${Date.now()}@example.com`,
+        Password: 'password123',
+      });
+      
+      // Then update the LastLoginAt to make them inactive (31 days ago)
+      const inactiveDate = new Date();
+      inactiveDate.setDate(inactiveDate.getDate() - 31);
+      await service.update(user.Id, { LastLoginAt: inactiveDate });
 
       const result = await service.findInactive();
-
-      const sinceDate = new Date();
-      sinceDate.setDate(sinceDate.getDate() - 30);
-
-      expect(mockUsersRepository.findMany).toHaveBeenCalledWith({
-        where: [{ LastLoginAt: null }, { LastLoginAt: expect.anything() }], 
-        order: { LastLoginAt: 'ASC' },
-      });
-   
-      const callArg = mockUsersRepository.findMany.mock.calls[0][0];
-      expect(callArg.where[1].LastLoginAt.value.getTime()).toBeLessThanOrEqual(sinceDate.getTime());
-      expect(result).toEqual([inactiveUser]);
+      
+      // Should find the inactive user
+      const found = result.some(u => u.Id === user.Id);
+      expect(found).toBe(true);
     });
 
     it('deve encontrar usuários inativos para um número de dias especificado', async () => {
       const days = 60;
-      const inactiveUser = {
-        ...mockUser,
-        LastLoginAt: new Date(Date.now() - (days + 1) * 24 * 60 * 60 * 1000),
-      };
-      mockUsersRepository.findMany.mockResolvedValueOnce([inactiveUser]);
+      
+      // First create a user
+      const user = await service.create({
+        Name: 'Very Inactive User',
+        Email: `inactive-${Date.now()}@example.com`,
+        Password: 'password123',
+      });
+      
+      // Then update the LastLoginAt to make them inactive for 61 days
+      const inactiveDate = new Date();
+      inactiveDate.setDate(inactiveDate.getDate() - (days + 1));
+      await service.update(user.Id, { LastLoginAt: inactiveDate });
 
       const result = await service.findInactive(days);
-
-      const sinceDate = new Date();
-      sinceDate.setDate(sinceDate.getDate() - days);
-
-      expect(mockUsersRepository.findMany).toHaveBeenCalledWith({
-        where: [{ LastLoginAt: null }, { LastLoginAt: expect.anything() }],
-        order: { LastLoginAt: 'ASC' },
-      });
-      const callArg = mockUsersRepository.findMany.mock.calls[0][0];
-      expect(callArg.where[1].LastLoginAt.value.getTime()).toBeLessThanOrEqual(sinceDate.getTime());
-      expect(result).toEqual([inactiveUser]);
+      
+      // Should find the inactive user
+      const found = result.some(u => u.Id === user.Id);
+      expect(found).toBe(true);
     });
   });
 
   describe('findOneById', () => {
     it('deve encontrar um usuário por ID', async () => {
-      mockUsersRepository.findOne.mockResolvedValueOnce(mockUser);
-      const result = await service.findOneById('1');
-      expect(mockUsersRepository.findOne).toHaveBeenCalledWith({ where: { Id: '1' } });
-      expect(result).toBeInstanceOf(User);
-      expect(result?.Id).toBe('1');
+      // testUser is created in beforeEach
+      const result = await service.findOneById(testUser.Id);
+      
+      expect(result).toBeDefined();
+      expect(result?.Id).toBe(testUser.Id);
+      expect(result?.Email).toBe(testUser.Email);
     });
 
     it('deve retornar nulo se o usuário não for encontrado por ID', async () => {
-      mockUsersRepository.findOne.mockResolvedValueOnce(null);
-      const result = await service.findOneById('non-existent-id');
-      expect(mockUsersRepository.findOne).toHaveBeenCalledWith({
-        where: { Id: 'non-existent-id' },
-      });
+      const nonExistentId = '00000000-0000-0000-0000-000000000000';
+      const result = await service.findOneById(nonExistentId);
+      
       expect(result).toBeNull();
     });
   });
 
   describe('findOneByEmail', () => {
     it('deve encontrar um usuário por Email', async () => {
-      mockUsersRepository.findOne.mockResolvedValueOnce(mockUser);
-      const result = await service.findOneByEmail('test@example.com');
-      expect(mockUsersRepository.findOne).toHaveBeenCalledWith({
-        where: { Email: 'test@example.com' },
-      });
-      expect(result).toBeInstanceOf(User);
-      expect(result?.Email).toBe('test@example.com');
+      // testUser is created in beforeEach
+      const result = await service.findOneByEmail(testUser.Email);
+      
+      expect(result).toBeDefined();
+      expect(result?.Id).toBe(testUser.Id);
+      expect(result?.Email).toBe(testUser.Email.toLowerCase()); // Email should be stored in lowercase
     });
 
     it('deve retornar nulo se o usuário não for encontrado por Email', async () => {
-      mockUsersRepository.findOne.mockResolvedValueOnce(null);
-      const result = await service.findOneByEmail('non-existent@example.com');
-      expect(mockUsersRepository.findOne).toHaveBeenCalledWith({
-        where: { Email: 'non-existent@example.com' },
-      });
+      const nonExistentEmail = `nonexistent-${Date.now()}@example.com`;
+      const result = await service.findOneByEmail(nonExistentEmail);
       expect(result).toBeNull();
     });
   });
 
   describe('delete', () => {
     it('deve deletar um usuário', async () => {
-      mockUsersRepository.delete.mockResolvedValueOnce(undefined);
-      await service.delete('1');
-      expect(mockUsersRepository.delete).toHaveBeenCalledWith('1');
+      // First create a user to delete
+      const userToDelete = await service.create({
+        Name: 'User to Delete',
+        Email: `delete-${Date.now()}@example.com`,
+        Password: 'password123',
+      });
+      
+      // Delete the user
+      await service.delete(userToDelete.Id);
+      
+      // Verify the user was deleted
+      const deletedUser = await service.findOneById(userToDelete.Id);
+      expect(deletedUser).toBeNull();
+    });
+
+    it('não deve lançar erro ao tentar deletar um usuário que não existe', async () => {
+      await expect(service.delete('non-existent-id')).resolves.not.toThrow();
     });
   });
+
+  // findMany tests are now in the main describe block with proper beforeEach
 });

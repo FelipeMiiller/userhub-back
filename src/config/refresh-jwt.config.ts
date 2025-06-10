@@ -1,5 +1,5 @@
 import { registerAs } from '@nestjs/config';
-import type { JwtSignOptions } from '@nestjs/jwt';
+
 import type { JwtModuleOptions } from '@nestjs/jwt';
 export default registerAs(
   'refresh-jwt',

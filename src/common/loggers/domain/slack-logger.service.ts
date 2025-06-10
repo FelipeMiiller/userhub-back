@@ -13,29 +13,13 @@ export class SlackLoggerService {
     }
   }
 
-  async send(message: string, meta?: Record<string, unknown>) {
-    if (!this.webhook) return;
-
-    // Campos essenciais
-    const context = meta?.context || 'Backend';
-    const level = meta?.level || 'INFO';
-    const environment = meta?.environment || this.configService.get('app.environment');
-    const userId = meta?.userId || 'Desconhecido';
-    const httpMethod = meta?.httpMethod || 'Desconhecido';
-    const path = meta?.path || 'Desconhecido';
-    const timestamp = meta?.timestamp
-      ? new Date(meta.timestamp as string).toLocaleString('pt-BR', {
-          timeZone: 'America/Sao_Paulo',
-        })
-      : new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-
-    // Header e seção principal
+  private buildBlocks(message: string, meta: Record<string, unknown>): any[] {
     const blocks: any[] = [
       {
         type: 'header',
         text: {
           type: 'plain_text',
-          text: `[${level}] ${context}`,
+          text: `[${meta.level}] ${meta.context}`,
         },
       },
       {
@@ -49,14 +33,14 @@ export class SlackLoggerService {
         type: 'section',
         text: {
           type: 'mrkdwn',
-          text: `*Método:* ${httpMethod}`,
+          text: `*Método:* ${meta.httpMethod || 'Desconhecido'}`,
         },
       },
       {
         type: 'section',
         text: {
           type: 'mrkdwn',
-          text: `*Path:* ${path}`,
+          text: `*Path:* ${meta.path || 'Desconhecido'}`,
         },
       },
       {
@@ -64,9 +48,9 @@ export class SlackLoggerService {
         text: {
           type: 'mrkdwn',
           text: [
-            meta?.userId ? `*Usuário:* ${meta.userId}` : null,
-            meta?.environment ? `*Ambiente:* ${environment}` : null,
-            `*Data/Hora:* ${timestamp}`,
+            meta.userId ? `*Usuário:* ${meta.userId}` : null,
+            meta.environment ? `*Ambiente:* ${meta.environment}` : null,
+            `*Data/Hora:* ${meta.timestamp || new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`,
           ]
             .filter(Boolean)
             .join('\n'),
@@ -74,31 +58,51 @@ export class SlackLoggerService {
       },
     ];
 
-    // Stack trace (se houver)
-    if (meta?.stackTrace) {
+    if (meta.stackTrace) {
       blocks.push({
         type: 'section',
         text: {
           type: 'mrkdwn',
-          text: `*Stack Trace:*\n\`\`\`\n${String(meta.stackTrace).slice(0, 3900)}\n\`\`\``,
+          text: `*Stack Trace:*
+\`\`\`
+${String(meta.stackTrace).slice(0, 3900)}
+\`\`\``,
         },
       });
     }
 
-    // Payload bruto (se houver)
-    if (meta?.rawError) {
+    if (meta.rawError) {
       blocks.push({
         type: 'section',
         text: {
           type: 'mrkdwn',
-          text: `*Raw Error:*\n\`\`\`\n${String(meta.rawError).slice(0, 3900)}\n\`\`\``,
+          text: `*Raw Error:*
+\`\`\`
+${String(meta.rawError).slice(0, 3900)}
+\`\`\``,
         },
       });
     }
 
-    await this.webhook.send({
-      text: `[${level}] ${context}: ${message}`,
-      blocks,
-    });
+    return blocks;
+  }
+
+  async send(message: string, meta?: Record<string, unknown>) {
+    if (!this.webhook) return;
+    meta = meta || {};
+    try {
+      await this.webhook.send({
+        text: `[${meta.level}] ${meta.context}: ${message}`,
+        blocks: this.buildBlocks(message, meta),
+      });
+    } catch (error) {
+      // If Slack fails, just log locally and continue
+      console.error('Failed to send to Slack', {
+        error: error.message,
+        context: meta.context,
+        message,
+        meta,
+      });
+    }
   }
 }

@@ -2,7 +2,7 @@ import { IsEmail, IsNotEmpty, IsOptional, IsString, IsStrongPassword } from 'cla
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 
-export class UserInputAuth {
+export class UserInputSignin {
   @ApiProperty({
     description: 'User email address',
     example: 'john@email.com',
@@ -28,24 +28,4 @@ export class UserInputAuth {
     minSymbols: 1,
   })
   readonly Password: string;
-
-  @ApiProperty({
-    description: 'User name',
-    example: 'John',
-    maxLength: 100,
-  })
-  @IsString()
-  @IsNotEmpty()
-  @Transform(({ value }) => value.toLowerCase().trim())
-  readonly Name: string;
-
-  @ApiPropertyOptional({
-    description: 'User last name',
-    example: 'Doe',
-    maxLength: 100,
-  })
-  @IsString()
-  @IsOptional()
-  @Transform(({ value }) => value.toLowerCase().trim())
-  readonly LastName?: string | null;
 }

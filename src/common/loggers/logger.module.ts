@@ -1,9 +1,9 @@
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 
 import { LoggerService } from './domain/logger.service';
 
 import { SlackLoggerService } from './domain/slack-logger.service';
-
+@Global()
 @Module({
   imports: [],
   providers: [LoggerService, SlackLoggerService],

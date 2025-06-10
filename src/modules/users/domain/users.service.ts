@@ -16,7 +16,7 @@ export class UsersService {
     this.loggerService.contextName = UsersService.name;
   }
 
-  async create(createUserDto: UserInput): Promise<User> {
+  async create(createUserDto: UserInput & { LastLoginAt?: Date,CreatedAt?:Date,UpdatedAt?:Date }): Promise<User> {
     const { Password, Role, ...userData } = createUserDto;
     const hashedPassword = await argon2.hash(Password);
     const roleToSet = Role || Roles.USER;

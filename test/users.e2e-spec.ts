@@ -33,7 +33,6 @@ describe('UsersController (e2e)', () => {
 
     console.clear();
 
-    // 1. Cria admin como usuário comum
     const admin = await usersService.create({
       Email: emailAdmin,
       Password: senhaAdmin,
@@ -42,10 +41,10 @@ describe('UsersController (e2e)', () => {
     });
     expect(admin.Role).toBe(Roles.ADMIN);
 
-    // 3. Faz login para obter token já com role ADMIN
     const loginRes = await request(app.getHttpServer())
       .post('/auth/signin')
       .send({ Email: emailAdmin, Password: senhaAdmin });
+
     tokenAdmin = loginRes.body.data.accessToken;
   });
 
@@ -67,8 +66,8 @@ describe('UsersController (e2e)', () => {
         .send(usuario)
         .expect(201);
       expect(res.body).toBeDefined();
-      expect(res.body.data.Email).toBe(usuario.Email);
-      expect(res.body.data.Name).toBe(usuario.Name);
+      expect(res.body.data.Email).toBe(usuario.Email.toLowerCase());
+      expect(res.body.data.Name).toBe(usuario.Name.toLowerCase());
       expect(res.body.data.Role).toBe('USER');
       usuarioId = res.body.data.Id;
     });
