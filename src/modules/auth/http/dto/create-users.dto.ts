@@ -1,5 +1,6 @@
 import { IsEmail, IsNotEmpty, IsOptional, IsString, IsStrongPassword } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 
 export class UserInputAuth {
   @ApiProperty({
@@ -9,6 +10,7 @@ export class UserInputAuth {
   })
   @IsEmail()
   @IsNotEmpty()
+  @Transform(({ value }) => value.toLowerCase().trim())
   readonly Email: string;
 
   @ApiProperty({
@@ -34,6 +36,7 @@ export class UserInputAuth {
   })
   @IsString()
   @IsNotEmpty()
+  @Transform(({ value }) => value.toLowerCase().trim())
   readonly Name: string;
 
   @ApiPropertyOptional({
@@ -43,5 +46,6 @@ export class UserInputAuth {
   })
   @IsString()
   @IsOptional()
+  @Transform(({ value }) => value.toLowerCase().trim())
   readonly LastName?: string | null;
 }

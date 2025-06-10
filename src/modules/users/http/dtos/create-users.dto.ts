@@ -1,6 +1,7 @@
 import {
   IsEmail,
   IsEnum,
+  IsLowercase,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -10,6 +11,7 @@ import {
 
 import { Roles } from 'src/modules/users/domain/models/users.models';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 
 export class UserInput {
   @ApiProperty({
@@ -19,6 +21,7 @@ export class UserInput {
   })
   @IsEmail()
   @IsNotEmpty()
+  @Transform(({ value }) => value.toLowerCase().trim())
   readonly Email: string;
 
   @ApiProperty({
@@ -44,6 +47,7 @@ export class UserInput {
   })
   @IsString()
   @IsNotEmpty()
+  @Transform(({ value }) => value.toLowerCase().trim())
   readonly Name: string;
 
   @ApiPropertyOptional({
@@ -53,6 +57,7 @@ export class UserInput {
   })
   @IsString()
   @IsOptional()
+  @Transform(({ value }) => value.toLowerCase().trim())
   readonly LastName?: string | null;
 
   @ApiPropertyOptional({

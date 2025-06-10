@@ -6,12 +6,13 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
+import * as crypto from 'crypto';
 import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
 
 import jwtConfig from 'src/config/jwt.config';
 import refreshJwtConfig from 'src/config/refresh-jwt.config';
-import { User } from 'src/modules/users/domain/models/users.models';
+import { Roles, User } from 'src/modules/users/domain/models/users.models';
 
 import { UsersService } from 'src/modules/users/domain/users.service';
 import { Login, Payload } from './types';
@@ -38,7 +39,7 @@ export class AuthService {
     if (!user) {
       throw new NotFoundException(`User not found ${email}`);
     }
-    if (user.Password === null || user.Password === undefined) {
+    if (!user.Password) {
       throw new ConflictException(`User not found password: ${email}`);
     }
 
@@ -56,22 +57,38 @@ export class AuthService {
     primeiroNome: string;
     segundoNome: string;
   }): Promise<User> {
-    const { email } = googleUser;
+    const { email, avatarUrl, primeiroNome, segundoNome } = googleUser;
 
     if (!email) {
-      throw new UnauthorizedException('Email required');
+      throw new UnauthorizedException('Email from Google profile is required');
     }
-    const user = await this.usersService.findOneByEmail(email);
+
+    let user = await this.usersService.findOneByEmail(email);
 
     if (!user) {
-      throw new UnauthorizedException(`Not found ${email}`);
-    }
-
-    if (!user.AvatarUrl) {
-      await this.usersService.update(user.Id, {
-        AvatarUrl: googleUser.avatarUrl,
+      const randomPassword = crypto.randomBytes(32).toString('hex');
+      user = await this.usersService.create({
+        Email: email.toLowerCase(),
+        Password: randomPassword,
+        Name: primeiroNome.toLowerCase(),
+        LastName: segundoNome.toLowerCase() || null,
+        AvatarUrl: avatarUrl || null,
+        Role: Roles.USER,
       });
     }
+
+    if (!user.AvatarUrl && avatarUrl) {
+      user = await this.usersService.update(user.Id, {
+        AvatarUrl: avatarUrl,
+      });
+    }
+
+    if (!user) {
+      throw new UnauthorizedException(
+        'Não foi possível validar ou criar usuário a partir do perfil do Google.',
+      );
+    }
+
     return user;
   }
 
@@ -88,10 +105,11 @@ export class AuthService {
 
     const userUpdated = await this.usersService.update(user.Id, {
       HashRefreshToken: hashRefreshToken,
+      LastLoginAt: new Date(),
     });
 
     if (!userUpdated) {
-      throw new UnauthorizedException('User not found');
+      throw new UnauthorizedException('Não foi possível atualizar o usuário');
     }
 
     return {
@@ -119,16 +137,13 @@ export class AuthService {
   async refreshToken({ refreshToken }: Omit<Login, 'accessToken'>): Promise<Login> {
     const verifiedRefreshPayload: Payload = await this.verifyRefreshToken(refreshToken);
 
-    // Criamos um NOVO payload para o accessToken, omitindo 'iat' e 'exp' do payload do refresh token
     const newAccessTokenPayload: Omit<Payload, 'iat' | 'exp'> = {
       sub: verifiedRefreshPayload.sub,
       email: verifiedRefreshPayload.email,
       role: verifiedRefreshPayload.role,
       status: verifiedRefreshPayload.status,
     };
-    console.log('[AuthService.refreshToken] newAccessTokenPayload:', newAccessTokenPayload);
 
-    // Geramos o novo accessToken com o payload limpo e as opções corretas
     const newAccessToken = await this.jwtService.signAsync(newAccessTokenPayload, {
       secret: this.jwtConfiguration.secret,
       ...this.jwtConfiguration.signOptions,
@@ -148,7 +163,6 @@ export class AuthService {
         throw new UnauthorizedException('Refresh token is required');
       }
 
-      console.log('oiooi');
       await this.verifyRefreshToken(refreshToken);
 
       const user = await this.usersService.findOneById(id);
@@ -158,8 +172,6 @@ export class AuthService {
       if (!user.HashRefreshToken) {
         throw new UnauthorizedException('Refresh token has been revoked.');
       }
-      console.log('user.HashRefreshToken');
-
       const refreshtTokenMatches = await argon2.verify(user.HashRefreshToken, refreshToken);
       if (!refreshtTokenMatches) {
         throw new UnauthorizedException('Invalid refresh token');
@@ -171,14 +183,10 @@ export class AuthService {
   }
 
   async validateJwt(payload: Payload): Promise<Payload> {
-    console.log('[AuthService.validateJwt] Received payload:', payload);
     const { sub } = payload;
 
     const user = await this.usersService.findOneById(sub);
-    console.log(
-      '[AuthService.validateJwt] User found for sub ' + sub + ':',
-      user ? user.Id : 'null',
-    );
+
     if (!user) {
       throw new UnauthorizedException('User not found');
     }

@@ -1,4 +1,4 @@
-import { Roles, User } from '../../domain/models/users.models';
+import { Roles } from '../../domain/models/users.models';
 
 export class UserOutput {
   readonly Id: string;

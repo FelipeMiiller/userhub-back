@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: conectar-userhub-api
+    runtime: node
+    buildCommand: yarn --frozen-lockfile install && yarn build
+    startCommand: yarn start:prod
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+    healthCheck:
+      path: "/health/lb"
+      interval: 30
+      timeout: 10
+    

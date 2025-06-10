@@ -1,4 +1,9 @@
-import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  InternalServerErrorException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import {
   DeepPartial,
   FindManyOptions,
@@ -9,6 +14,15 @@ import {
   SaveOptions,
 } from 'typeorm';
 
+interface PostgresError {
+  code: string;
+  detail?: string;
+  constraint?: string;
+  table?: string;
+  column?: string;
+  [key: string]: any;
+}
+
 /**
  * BaseTypeOrmRepository<T> centraliza tratamento de erros comuns do PostgreSQL/TypeORM.
  * Herde esta classe nos repositórios específicos para DRY e padronização.
@@ -18,32 +32,41 @@ export abstract class BaseTypeOrmRepository<T> {
 
   protected handlePostgresError(error: unknown): never {
     if (typeof error === 'object' && error !== null && 'code' in error) {
-      switch ((error as any).code) {
+      const pgError = error as PostgresError;
+      switch (pgError.code) {
         case '23505':
           throw new ConflictException('Registro duplicado.', {
-            cause: error,
+            cause: pgError,
             description: 'Já existe registro com os dados informados.',
           });
         case '23502':
           throw new BadRequestException('Campo obrigatório não informado.', {
-            cause: error,
+            cause: pgError,
             description: 'Verifique os campos obrigatórios.',
           });
         case '23503':
           throw new BadRequestException('Relacionamento inválido.', {
-            cause: error,
+            cause: pgError,
             description: 'Verifique as chaves estrangeiras.',
           });
         case '23514':
-          throw new BadRequestException('Valor inválido para um dos campos.', {
-            cause: error,
+          throw new UnprocessableEntityException('Valor inválido para um dos campos.', {
+            cause: pgError,
             description: 'Verifique as restrições dos campos.',
           });
         default:
-          throw error;
+          throw new InternalServerErrorException(
+            'Ocorreu um erro desconhecido no banco de dados.',
+            {
+              cause: pgError,
+              description: `Código de erro PostgreSQL: ${pgError.code}`,
+            },
+          );
       }
     }
-    throw error;
+    throw new InternalServerErrorException('Ocorreu um erro inesperado no banco de dados.', {
+      cause: error,
+    });
   }
 
   async create(entity: DeepPartial<T>, options?: SaveOptions): Promise<T> {
@@ -61,7 +84,7 @@ export abstract class BaseTypeOrmRepository<T> {
       ...entity,
     });
     if (!updateEntity) {
-      throw new NotFoundException(`Record not found for ID: ${id}`);
+      return null;
     }
     try {
       return await this.repository.save(updateEntity, options);
@@ -101,6 +124,14 @@ export abstract class BaseTypeOrmRepository<T> {
   ): Promise<void> {
     try {
       await this.repository.delete(criteria);
+    } catch (error) {
+      this.handlePostgresError(error);
+    }
+  }
+
+  async clear(): Promise<void> {
+    try {
+      await this.repository.clear();
     } catch (error) {
       this.handlePostgresError(error);
     }

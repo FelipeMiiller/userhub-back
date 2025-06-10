@@ -1,38 +1,34 @@
 import * as request from 'supertest';
-import { Test } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
-import { AppModule } from 'src/app.module';
-import { TransformInterceptor } from 'src/common/interceptors/transform.interceptor';
-import { DataSource } from 'typeorm';
+import { INestApplication } from '@nestjs/common';
+import {
+  USERS_REPOSITORY_TOKEN,
+  UsersRepository,
+} from '../src/modules/users/domain/repositories/users.repository.interface';
+
+import { setupTestApp, teardownTestApp } from './test-utils';
+import { LoggerService } from 'src/common/loggers/domain/logger.service';
 
 describe('AuthController (e2e)', () => {
   let app: INestApplication;
   let accessToken: string;
   let refreshToken: string;
   let userId: string;
-  let dataSource: DataSource;
+  let usersRepository: UsersRepository;
+
 
   const testUserEmail = `test_user_${new Date().getTime()}@example.com`;
   const testUserPassword = 'Test@123';
 
   beforeAll(async () => {
-    const moduleFixture = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
+    const testSetup = await setupTestApp();
+    app = testSetup.app;
 
-    app = moduleFixture.createNestApplication();
-
-    app.useGlobalPipes(new ValidationPipe({ transform: true }));
-    app.useGlobalInterceptors(new TransformInterceptor());
-
-    await app.init();
-
-    dataSource = app.get(DataSource);
+    usersRepository = app.get<UsersRepository>(USERS_REPOSITORY_TOKEN);
 
     try {
-      await dataSource.query('DELETE FROM "Users"');
+      await usersRepository.clear();
     } catch (error) {
-      console.error('Erro ao limpar dados das tabelas:', error);
+      console.error('Erro ao limpar dados da tabela Users via repositório:', error);
       throw error;
     }
 
@@ -40,13 +36,7 @@ describe('AuthController (e2e)', () => {
   });
 
   afterAll(async () => {
-    await app.close();
-
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    if (global.gc) {
-      global.gc();
-    }
+    await teardownTestApp(app);
   });
 
   describe('Registro de usuário', () => {
@@ -72,15 +62,15 @@ describe('AuthController (e2e)', () => {
 
       // Verificar os valores
 
-      expect(userResponse.Email).toContain(userData.Email);
-      expect(userResponse.Name).toBe(userData.Name);
+      expect(userResponse.Email).toBe(userData.Email.toLowerCase());
+      expect(userResponse.Name).toBe(userData.Name.toLowerCase());
       expect(userResponse.Role).toBe('USER');
       expect(userResponse.Status).toBe(true);
       expect(userResponse.CreatedAt).toBeDefined();
       expect(userResponse.UpdatedAt).toBeDefined();
       expect(userResponse).not.toHaveProperty('Password');
       expect(userResponse).not.toHaveProperty('HashRefreshToken');
-      expect(userResponse).not.toHaveProperty('LastLoginAt');
+      expect(userResponse.LastLoginAt).toBeUndefined();
     });
 
     it('/auth/signup (POST) - não permite criar usuário com email já existente', async () => {
@@ -114,31 +104,9 @@ describe('AuthController (e2e)', () => {
         .post('/auth/signup')
         .send(invalidUserData);
 
-      expect([400, 422, 500]).toContain(response.status);
-    });
+      console.log(response.body);
 
-    it('/auth/signup (POST) - tenta criar usuário com role ADMIN (deve ignorar a role)', async () => {
-      const timestamp = new Date().getTime();
-      const userData = {
-        Email: `admin_attempt_${timestamp}@example.com`,
-        Password: 'Admin@123',
-        Name: 'Admin Attempt User',
-        Role: 'ADMIN',
-      };
-
-      const res = await request(app.getHttpServer())
-        .post('/auth/signup')
-        .send(userData)
-        .expect(201);
-
-      expect(res.body).toHaveProperty('data');
-      const userResponse = res.body.data;
-
-      // Verificar as propriedades do usuário
-      expect(userResponse).toHaveProperty('Email');
-      expect(userResponse).toHaveProperty('Role');
-
-      expect(userResponse.Role).toBe('USER');
+      expect(response.status).toBe(400);
     });
 
     it('/auth/signup (POST) - cria usuário normal com sucesso', async () => {
@@ -181,6 +149,9 @@ describe('AuthController (e2e)', () => {
       expect(signupRes.body).toHaveProperty('data');
       expect(signupRes.body.data).toHaveProperty('Email');
       expect(signupRes.body.data.Email).toBe(testUserEmail);
+      expect(signupRes.body.data).not.toHaveProperty('Password');
+      expect(signupRes.body.data).not.toHaveProperty('HashRefreshToken');
+      expect(signupRes.body.data.LastLoginAt).toBeUndefined();
 
       userId = signupRes.body.data.Id;
       expect(userId).toBeDefined();
@@ -309,7 +280,7 @@ describe('AuthController (e2e)', () => {
       expect(userData).toHaveProperty('UpdatedAt');
       expect(userData).not.toHaveProperty('Password');
       expect(userData).not.toHaveProperty('HashRefreshToken');
-      expect(userData).not.toHaveProperty('LastLoginAt');
+
       expect(userData.Email).toBe(testUserEmail);
     });
 

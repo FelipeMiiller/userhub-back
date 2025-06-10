@@ -5,17 +5,19 @@ import { Inject } from '@nestjs/common';
 import { Cache } from 'cache-manager';
 
 import { UsersService } from 'src/modules/users/domain/users.service';
+import { LoggerService } from '../loggers/domain/logger.service';
 
 @Injectable()
 export class LastActivityService {
   constructor(
     @Inject('CACHE_MANAGER') private cacheManager: Cache,
     private usersService: UsersService,
+    private loggerService: LoggerService,
   ) {}
 
-  @Cron('*/1 * * * *')
+  @Cron('*/10 * * * *')
   async syncLastLoginTimestamps() {
-    console.log('🔄 Sincronizando dados de lastLoginAt do Redis para o banco...');
+    this.loggerService.debug('🔄 Sincronizando dados de lastLoginAt do Redis para o banco...');
 
     const userIds = await this.cacheManager.get<string[]>('user:loginQueue');
 

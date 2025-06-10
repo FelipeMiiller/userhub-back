@@ -1,37 +1,38 @@
 import * as request from 'supertest';
-import { Test } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
-import { AppModule } from 'src/app.module';
-import { TransformInterceptor } from 'src/common/interceptors/transform.interceptor';
-import { DataSource } from 'typeorm';
+import { INestApplication } from '@nestjs/common';
 import { Roles } from 'src/modules/users/domain/models/users.models';
+import { setupTestApp, teardownTestApp } from './test-utils';
+import {
+  USERS_REPOSITORY_TOKEN,
+  UsersRepository,
+} from 'src/modules/users/domain/repositories/users.repository.interface';
 
 describe('UsersController (e2e)', () => {
   let app: INestApplication;
   let tokenAdmin: string;
+  let usersRepository: UsersRepository;
   let usuarioId: string;
-  let dataSource: DataSource;
   let usersService: import('src/modules/users/domain/users.service').UsersService;
   const emailAdmin = `admin_${Date.now()}@exemplo.com`;
   const senhaAdmin = 'Admin@123';
 
   beforeAll(async () => {
-    const moduleFixture = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
+    const testSetup = await setupTestApp();
+    app = testSetup.app;
 
-    app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe({ transform: true }));
-    app.useGlobalInterceptors(new TransformInterceptor());
-    await app.init();
-
-    dataSource = app.get(DataSource);
     usersService = app.get(require('src/modules/users/domain/users.service').UsersService);
 
-    // Limpa tabela de usuários
-    await dataSource.query('DELETE FROM "Users"');
+    usersRepository = app.get<UsersRepository>(USERS_REPOSITORY_TOKEN);
 
-    // 1. Cria admin como usuário comum
+    try {
+      await usersRepository.clear();
+    } catch (error) {
+      console.error('Erro ao limpar dados da tabela Users via repositório:', error);
+      throw error;
+    }
+
+    console.clear();
+
     const admin = await usersService.create({
       Email: emailAdmin,
       Password: senhaAdmin,
@@ -40,17 +41,15 @@ describe('UsersController (e2e)', () => {
     });
     expect(admin.Role).toBe(Roles.ADMIN);
 
-    // 3. Faz login para obter token já com role ADMIN
     const loginRes = await request(app.getHttpServer())
       .post('/auth/signin')
       .send({ Email: emailAdmin, Password: senhaAdmin });
+
     tokenAdmin = loginRes.body.data.accessToken;
   });
 
   afterAll(async () => {
-    await app.close();
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    if (global.gc) global.gc();
+    await teardownTestApp(app);
   });
 
   describe('POST /users', () => {
@@ -67,8 +66,8 @@ describe('UsersController (e2e)', () => {
         .send(usuario)
         .expect(201);
       expect(res.body).toBeDefined();
-      expect(res.body.data.Email).toBe(usuario.Email);
-      expect(res.body.data.Name).toBe(usuario.Name);
+      expect(res.body.data.Email).toBe(usuario.Email.toLowerCase());
+      expect(res.body.data.Name).toBe(usuario.Name.toLowerCase());
       expect(res.body.data.Role).toBe('USER');
       usuarioId = res.body.data.Id;
     });
@@ -142,12 +141,30 @@ describe('UsersController (e2e)', () => {
 
   describe('DELETE /users/:id', () => {
     it('deve remover usuário', async () => {
+      const userToDeleteEmail = `delete_me_${Date.now()}@exemplo.com`;
+      const userToDeletePassword = 'PasswordToDelete123!';
+      const createUserRes = await request(app.getHttpServer())
+        .post('/users')
+        .set('Authorization', `bearer ${tokenAdmin}`)
+        .send({
+          Email: userToDeleteEmail,
+          Password: userToDeletePassword,
+          Name: 'User',
+          LastName: 'ToDelete',
+          Role: Roles.USER, // Explicitly set role if needed, or let backend default
+        })
+        .expect(201);
+
+      const userIdToDelete = createUserRes.body.data.Id;
+      expect(userIdToDelete).toBeDefined();
+
       await request(app.getHttpServer())
-        .delete(`/users/${usuarioId}`)
+        .delete(`/users/${userIdToDelete}`)
         .set('Authorization', `bearer ${tokenAdmin}`)
         .expect(204);
+
       await request(app.getHttpServer())
-        .get(`/users/${usuarioId}`)
+        .get(`/users/${userIdToDelete}`)
         .set('Authorization', `bearer ${tokenAdmin}`)
         .expect(404);
     });

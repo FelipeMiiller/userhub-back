@@ -12,8 +12,28 @@ export const config = {
   entities: [UserEntity],
   migrations: [CreateUsersTable1723809312769],
   synchronize: false,
-  logging: true,
+  logging: process.env.NODE_ENV !== 'test',
   migrationsRun: false,
+  ssl: process.env.TYPEORM_SSL === 'true',
+  extra: {
+    ssl:
+      process.env.TYPEORM_SSL === 'true'
+        ? {
+            rejectUnauthorized: false,
+          }
+        : undefined,
+  },
+  ...(process.env.NODE_ENV === 'test'
+    ? {
+        dropSchema: false,
+        keepConnectionAlive: false,
+        maxQueryExecutionTime: 1000,
+        extra: {
+          poolSize: 5,
+          max: 5,
+        },
+      }
+    : {}),
 };
 
 export default registerAs('typeorm', () => config);

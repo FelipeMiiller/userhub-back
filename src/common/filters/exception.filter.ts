@@ -4,6 +4,7 @@ import {
   type ExceptionFilter,
   HttpException,
   HttpStatus,
+  ForbiddenException,
 } from '@nestjs/common';
 import { LoggerService } from '../loggers/domain/logger.service';
 
@@ -35,6 +36,21 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const isDev = process.env.NODE_ENV !== 'production';
 
     // Trata exceções HTTP (incluindo PrismaException que é uma HttpException)
+
+    if (
+      processedException instanceof ForbiddenException &&
+      processedException.message.includes('This endpoint is restricted to specific IPs only')
+    ) {
+      errorResponse = {
+        statusCode: HttpStatus.FORBIDDEN,
+        timestamp: new Date().toISOString(),
+        path: request.url,
+        message: isDev ? processedException.message : 'Forbidden',
+      };
+      response.status(errorResponse.statusCode).json(errorResponse);
+      return;
+    }
+
     if (processedException instanceof HttpException) {
       const status = processedException.getStatus();
       let message = processedException.getResponse();

@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 import { createLogger, format, Logger, transports } from 'winston';
 import { Injectable, Scope, Optional } from '@nestjs/common';
-import { LoggersRepository } from './repositories/logger.repository';
+
 import { SlackLoggerService } from './slack-logger.service';
 
 export enum LogLevel {
@@ -24,12 +24,13 @@ export class LoggerService {
   private _contextName = 'Logger';
   private readonly logger: Logger = createLogger();
 
-  constructor(
-    @Optional() private readonly loggersRepository?: LoggersRepository,
-    @Optional() private readonly slackLoggerService?: SlackLoggerService,
-  ) {
+  constructor(@Optional() private readonly slackLoggerService?: SlackLoggerService) {
     this.logger.configure({
-      transports: [this.logTransportConsole()],
+      transports: [
+        this.logTransportConsole(),
+        //  this.logTransportFile(),
+        // this.logTransportCombined(),
+      ],
       exitOnError: false,
     });
   }
@@ -39,18 +40,37 @@ export class LoggerService {
       handleExceptions: true,
       format: format.combine(
         format.timestamp(),
-        format.printf((info) => {
-          const { timestamp, level, message, meta } = info;
-          const context = (meta as { context?: string })?.context ?? '';
-
-          return (
-            `${timestamp} [${level.toLocaleUpperCase()}] [${context ?? ''}] ` +
-            `${message} ${JSON.stringify(meta)}`
-          );
-        }),
+        format.errors({ stack: true }),
+        format.splat(),
+        format.json(),
       ),
     });
   }
+
+  //private logTransportFile() {
+  //return new transports.File({
+  //  filename: 'logs/error.log',
+  //  level: 'error',
+  //  format: format.combine(
+  //    format.timestamp(),
+  //    format.errors({ stack: true }),
+  //    format.splat(),
+  //    format.json(),
+  //  ),
+  //});
+  // }
+
+  // private logTransportCombined() {
+  //    return new transports.File({
+  //     filename: 'logs/combined.log',
+  //     format: format.combine(
+  //       format.timestamp(),
+  //       format.errors({ stack: true }),
+  //       format.splat(),
+  //       format.json(),
+  //     ),
+  //   });
+  // }
 
   set idempotencyKey(idempotencyKey: string) {
     this._idempotencyKey = idempotencyKey;
@@ -66,30 +86,6 @@ export class LoggerService {
 
   get contextName(): string {
     return this._contextName;
-  }
-
-  private async createAuditLog(
-    level: string,
-    message: string,
-    context: string,
-    meta?: LogMetadata,
-
-    userId?: string,
-  ): Promise<void> {
-    if (!this.loggersRepository) return;
-
-    try {
-      await this.loggersRepository.create({
-        level,
-        message,
-        context,
-        timestamp: new Date(),
-        ...(userId && { userId }),
-        ...(meta && { meta }),
-      });
-    } catch (error) {
-      console.error('Failed to create audit log:', error);
-    }
   }
 
   private async createSlackLog(
@@ -110,14 +106,14 @@ export class LoggerService {
         timestamp: new Date(),
       });
     } catch (error) {
-      console.error('Failed to send log to Slack:', error);
+      console.log('Failed to send log to Slack:', error);
     }
   }
 
   error(
     message: string,
     meta?: Record<string, unknown>,
-    options: { auditable?: boolean; slack?: boolean; userId?: string } = {},
+    options: { slack?: boolean; userId?: string } = {},
   ): void {
     const metadata: LogMetadata = {
       context: this._contextName,
@@ -126,15 +122,12 @@ export class LoggerService {
       ...(meta || {}),
     };
 
-    this.logger.log({
+    this.logger.error({
       level: LogLevel.ERROR,
       message,
       meta: metadata,
     });
 
-    if (options.auditable) {
-      this.createAuditLog(LogLevel.ERROR, message, this._contextName, metadata, options.userId);
-    }
     if (options.slack) {
       this.createSlackLog(LogLevel.ERROR, message, this._contextName, metadata, options.userId);
     }
@@ -143,7 +136,7 @@ export class LoggerService {
   warn(
     message: string,
     meta?: Record<string, unknown>,
-    options: { auditable?: boolean; slack?: boolean; userId?: string } = {},
+    options: { slack?: boolean; userId?: string } = {},
   ): void {
     const metadata: LogMetadata = {
       context: this._contextName,
@@ -151,15 +144,12 @@ export class LoggerService {
       ...(meta || {}),
     };
 
-    this.logger.log({
+    this.logger.warn({
       level: LogLevel.WARN,
       message,
       meta: metadata,
     });
 
-    if (options.auditable) {
-      this.createAuditLog(LogLevel.WARN, message, this._contextName, metadata, options.userId);
-    }
     if (options.slack) {
       this.createSlackLog(LogLevel.WARN, message, this._contextName, metadata, options.userId);
     }
@@ -168,7 +158,7 @@ export class LoggerService {
   info(
     message: string,
     meta?: Record<string, unknown>,
-    options: { auditable?: boolean; slack?: boolean; userId?: string } = {},
+    options: { slack?: boolean; userId?: string } = {},
   ): void {
     const metadata: LogMetadata = {
       context: this._contextName,
@@ -176,15 +166,12 @@ export class LoggerService {
       ...(meta || {}),
     };
 
-    this.logger.log({
+    this.logger.info({
       level: LogLevel.INFO,
       message,
       meta: metadata,
     });
 
-    if (options.auditable) {
-      this.createAuditLog(LogLevel.INFO, message, this._contextName, metadata, options.userId);
-    }
     if (options.slack) {
       this.createSlackLog(LogLevel.INFO, message, this._contextName, metadata, options.userId);
     }
@@ -193,7 +180,7 @@ export class LoggerService {
   debug(
     message: string,
     meta?: Record<string, unknown>,
-    options: { auditable?: boolean; slack?: boolean; userId?: string } = {},
+    options: { slack?: boolean; userId?: string } = {},
   ): void {
     const metadata: LogMetadata = {
       context: this._contextName,
@@ -201,31 +188,18 @@ export class LoggerService {
       ...(meta || {}),
     };
 
-    this.logger.log({
+    this.logger.debug({
       level: LogLevel.DEBUG,
       message,
       meta: metadata,
     });
 
-    if (options.auditable) {
-      this.createAuditLog(LogLevel.DEBUG, message, this._contextName, metadata, options.userId);
-    }
     if (options.slack) {
       this.createSlackLog(LogLevel.DEBUG, message, this._contextName, metadata, options.userId);
     }
   }
 
-  /**
-   * Registra um log de auditoria, marcando o meta.audit = true para fácil filtragem.
-   * @param message Mensagem de auditoria
-   * @param meta Metadados adicionais
-   * @param context Nome do contexto
-   * @param userId ID do usuário responsável
-   */
-  audit(message: string, meta?: Record<string, unknown>, context?: string, userId?: string): void {
+  audit(message: string, meta?: Record<string, unknown>, userId?: string): void {
     this.logger.data(message, meta, true, userId);
-
-    // Se desejar persistir audit logs no repositório, pode usar createAuditLog
-    this.createAuditLog(LogLevel.AUDIT, message, context, meta, userId);
   }
 }

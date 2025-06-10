@@ -1,12 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { OnEvent } from '@nestjs/event-emitter';
 import { UserInput } from '../http/dtos/create-users.dto';
 import { LoggerService } from 'src/common/loggers/domain/logger.service';
-import { UpdateUser } from '../http/dtos/update-users.dto';
 import { Roles, User } from './models/users.models';
 import { USERS_REPOSITORY_TOKEN, UsersRepository } from './repositories/users.repository.interface';
 import * as argon2 from 'argon2';
-import { UserCreatedEvent } from 'src/common/events/user-created.event';
 import { LessThanOrEqual } from 'typeorm';
 
 @Injectable()
@@ -19,26 +16,18 @@ export class UsersService {
     this.loggerService.contextName = UsersService.name;
   }
 
-  async create(createUserDto: UserInput): Promise<User> {
+  async create(createUserDto: UserInput & { LastLoginAt?: Date,CreatedAt?:Date,UpdatedAt?:Date }): Promise<User> {
     const { Password, Role, ...userData } = createUserDto;
     const hashedPassword = await argon2.hash(Password);
     const roleToSet = Role || Roles.USER;
 
-    return this.usersRepository
-      .create({
-        ...userData,
-        Password: hashedPassword,
-        Role: roleToSet,
-        HashRefreshToken: null,
-      })
-      .then((user) => new User(user));
-  }
-
-  @OnEvent('user.created', { async: true })
-  async welcomeNewUser(event: UserCreatedEvent) {
-    await new Promise<void>((resolve) => setTimeout(() => resolve(), 6000));
-
-    this.loggerService.info(`USER CREATED --> ${event.email}`, { ...event }, { slack: true });
+    const user = await this.usersRepository.create({
+      ...userData,
+      Password: hashedPassword,
+      Role: roleToSet,
+      HashRefreshToken: null,
+    });
+    return new User(user);
   }
 
   async update(id: string, user: Partial<User>): Promise<User | null> {
@@ -49,6 +38,8 @@ export class UsersService {
     role,
     sortBy,
     order,
+    skip,
+    take,
   }: {
     role?: Roles;
     sortBy?: string;
@@ -59,7 +50,8 @@ export class UsersService {
     return this.usersRepository.findMany({
       where: role ? { Role: role } : undefined,
       order: { [sortBy]: order },
-     
+      skip,
+      take,
     });
   }
 
