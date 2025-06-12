@@ -1,13 +1,16 @@
 {
+
   "moduleFileExtensions": ["js", "json", "ts"],
   "rootDir": ".",
   "testEnvironment": "node",
   "testRegex": ".e2e-spec.ts$",
   "moduleNameMapper": {
-    "^src/(.*)$": "<rootDir>/../src/$1"
+    "^src/(.*)$": "<rootDir>/../src/$1",
+    "^emails/(.*)$": "<rootDir>/../__mocks__/emails/$1"
   },
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
   },
-  "testTimeout": 30000
+
+  "moduleDirectories": ["node_modules", "<rootDir>/.."]
 }

@@ -1,6 +1,6 @@
 import { ClassSerializerInterceptor, Module, ValidationPipe } from '@nestjs/common';
 import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE, Reflector } from '@nestjs/core';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigType } from '@nestjs/config';
 import { LoggerModule } from './common/loggers/logger.module';
 import { UsersModule } from './modules/users/users.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
@@ -22,6 +22,8 @@ import { AllExceptionsFilter } from './common/filters/exception.filter';
 import { CacheModule } from '@nestjs/cache-manager';
 import { ThrottlerConfigModule } from './common/throttler/throttler.module';
 import { HealthController } from './common/health/http/health-check.controller';
+import { BullModule } from '@nestjs/bullmq';
+import { MailModule } from './common/mail/mail.module';
 
 @Module({
   imports: [
@@ -31,6 +33,16 @@ import { HealthController } from './common/health/http/health-check.controller';
       load: [appConfig, typeormConfig, slackConfig, redisConfig],
     }),
     EventEmitterModule.forRoot(),
+    BullModule.forRootAsync({
+      imports: [ConfigModule.forRoot({ load: [redisConfig] })],
+      useFactory: (configDatabase: ConfigType<typeof redisConfig>) => ({
+        connection: {
+          port: configDatabase.port,
+          host: configDatabase.host,
+        },
+      }),
+      inject: [redisConfig.KEY],
+    }),
     CacheModule.registerAsync({
       imports: [ConfigModule],
       isGlobal: true,
@@ -55,6 +67,7 @@ import { HealthController } from './common/health/http/health-check.controller';
         };
       },
     }),
+    MailModule,
     ThrottlerConfigModule,
 
     TypeOrmModule.forRootAsync({

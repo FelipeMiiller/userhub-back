@@ -2,48 +2,35 @@ import * as request from 'supertest';
 import { INestApplication } from '@nestjs/common';
 import { Roles } from 'src/modules/users/domain/models/users.models';
 import { setupTestApp, teardownTestApp } from './test-utils';
-import {
-  USERS_REPOSITORY_TOKEN,
-  UsersRepository,
-} from 'src/modules/users/domain/repositories/users.repository.interface';
+import { UsersService } from 'src/modules/users/domain/users.service';
 
 describe('UsersController (e2e)', () => {
   let app: INestApplication;
   let tokenAdmin: string;
-  let usersRepository: UsersRepository;
+
   let usuarioId: string;
-  let usersService: import('src/modules/users/domain/users.service').UsersService;
-  const emailAdmin = `admin_${Date.now()}@exemplo.com`;
-  const senhaAdmin = 'Admin@123';
+  let service: UsersService;
+
+  const emailAdmin = `adminE2E_${Date.now()}@exemplo.com`;
+  const senhaAdmin = 'AdminE2E@123';
 
   beforeAll(async () => {
     const testSetup = await setupTestApp();
     app = testSetup.app;
+    service = app.get(UsersService);
 
-    usersService = app.get(require('src/modules/users/domain/users.service').UsersService);
 
-    usersRepository = app.get<UsersRepository>(USERS_REPOSITORY_TOKEN);
-
-    try {
-      await usersRepository.clear();
-    } catch (error) {
-      console.error('Erro ao limpar dados da tabela Users via repositório:', error);
-      throw error;
-    }
-
-    console.clear();
-
-    const admin = await usersService.create({
-      Email: emailAdmin,
-      Password: senhaAdmin,
-      Name: 'Administrador',
-      Role: Roles.ADMIN,
-    });
-    expect(admin.Role).toBe(Roles.ADMIN);
+    const res = await service.create({ Email: emailAdmin,
+        Password: senhaAdmin,
+        Name: 'Administrador',
+        Role: Roles.ADMIN,});
+  
+    expect(res.Role).toBe(Roles.ADMIN);
 
     const loginRes = await request(app.getHttpServer())
       .post('/auth/signin')
       .send({ Email: emailAdmin, Password: senhaAdmin });
+    console.log('loginRes.body', loginRes.body);
 
     tokenAdmin = loginRes.body.data.accessToken;
   });

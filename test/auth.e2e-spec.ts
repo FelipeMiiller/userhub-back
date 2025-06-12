@@ -6,7 +6,7 @@ import {
 } from '../src/modules/users/domain/repositories/users.repository.interface';
 
 import { setupTestApp, teardownTestApp } from './test-utils';
-import { LoggerService } from 'src/common/loggers/domain/logger.service';
+
 
 describe('AuthController (e2e)', () => {
   let app: INestApplication;
@@ -15,24 +15,14 @@ describe('AuthController (e2e)', () => {
   let userId: string;
   let usersRepository: UsersRepository;
 
-
   const testUserEmail = `test_user_${new Date().getTime()}@example.com`;
   const testUserPassword = 'Test@123';
 
   beforeAll(async () => {
     const testSetup = await setupTestApp();
     app = testSetup.app;
+    usersRepository = testSetup.usersRepository;
 
-    usersRepository = app.get<UsersRepository>(USERS_REPOSITORY_TOKEN);
-
-    try {
-      await usersRepository.clear();
-    } catch (error) {
-      console.error('Erro ao limpar dados da tabela Users via repositório:', error);
-      throw error;
-    }
-
-    console.clear();
   });
 
   afterAll(async () => {
@@ -74,7 +64,7 @@ describe('AuthController (e2e)', () => {
     });
 
     it('/auth/signup (POST) - não permite criar usuário com email já existente', async () => {
-      const email = 'duplicate_test@example.com';
+      const email = `duplicate_test_${Date.now()}@example.com`;
       const userData = {
         Email: email,
         Password: 'Password@123',
@@ -82,8 +72,24 @@ describe('AuthController (e2e)', () => {
         LastName: 'User',
       };
 
-      await request(app.getHttpServer()).post('/auth/signup').send(userData).expect(201);
+  
+      const firstResponse = await request(app.getHttpServer())
+        .post('/auth/signup')
+        .send(userData);
+      
+      expect(firstResponse.status).toBe(201);
+      expect(firstResponse.body).toHaveProperty('data.Email', email);
 
+   
+     
+      const existingUser = await usersRepository.findOne({ 
+        where: { Email: email } 
+      });
+      
+      expect(existingUser).toBeDefined();
+      expect(existingUser?.Email).toBe(email);
+
+ 
       const duplicateUserData = {
         Email: email,
         Password: 'DifferentPass@123',
@@ -91,7 +97,13 @@ describe('AuthController (e2e)', () => {
         LastName: 'User',
       };
 
-      await request(app.getHttpServer()).post('/auth/signup').send(duplicateUserData).expect(409); // Conflict
+      const secondResponse = await request(app.getHttpServer())
+        .post('/auth/signup')
+        .send(duplicateUserData);
+      
+      expect(secondResponse.status).toBe(409);
+      expect(secondResponse.body).toHaveProperty('statusCode', 409);
+      expect(secondResponse.body).toHaveProperty('message', 'Registro duplicado.');
     });
 
     it('/auth/signup (POST) - valida dados obrigatórios', async () => {
@@ -104,7 +116,7 @@ describe('AuthController (e2e)', () => {
         .post('/auth/signup')
         .send(invalidUserData);
 
-      console.log(response.body);
+
 
       expect(response.status).toBe(400);
     });
@@ -201,7 +213,7 @@ describe('AuthController (e2e)', () => {
 
       const errorResponse = res.body;
       expect(errorResponse).toHaveProperty('message');
-      expect(errorResponse.message).toMatch(/unauthorized|invalid credentials/i);
+      expect(errorResponse.message).toMatch("Credenciais inválidas");
     });
   });
 

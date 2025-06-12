@@ -37,7 +37,6 @@ import { PassportModule } from '@nestjs/passport';
       provide: APP_GUARD,
       useClass: JwtAuthGuard, //@UseGuards(JwtAuthGuard) applied on all API endppints
     },
-
     {
       provide: APP_GUARD,
       useClass: RolesGuard, //@Roles([UserRoles.Administrador]) applied on all API endppints

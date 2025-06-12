@@ -3,11 +3,12 @@
     "module": "commonjs",
     "declaration": true,
     "removeComments": true,
-    
+    "jsx": "react-jsx",
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
     "target": "ES2021",
+    "resolveJsonModule": true,
     "sourceMap": true,
     "outDir": "./dist",
     "baseUrl": "./",
@@ -18,5 +19,9 @@
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false
-  }
+    
+  },
+
+  "include": ["**/*.ts", "**/*.tsx"],
+  "exclude": ["node_modules", "**/*.js"]
 }
