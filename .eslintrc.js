@@ -12,7 +12,7 @@ module.exports = {
     node: true,
     jest: true,
   },
-  ignorePatterns: ['.eslintrc.js'],
+  ignorePatterns: ['.eslintrc.js', 'email.config.js'],
   rules: {
    
     'no-console': 'error',

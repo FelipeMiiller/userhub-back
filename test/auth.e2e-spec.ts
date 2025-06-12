@@ -15,7 +15,6 @@ describe('AuthController (e2e)', () => {
   let userId: string;
   let usersRepository: UsersRepository;
 
-
   const testUserEmail = `test_user_${new Date().getTime()}@example.com`;
   const testUserPassword = 'Test@123';
 

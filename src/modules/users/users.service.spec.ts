@@ -5,7 +5,10 @@ import { UserInput } from './http/dtos/create-users.dto';
 import { Roles, User } from './domain/models/users.models';
 import * as argon2 from 'argon2';
 import { setupTestApp, teardownTestApp } from '../../../test/test-utils';
-import { USERS_REPOSITORY_TOKEN, UsersRepository } from './domain/repositories/users.repository.interface';
+import {
+  USERS_REPOSITORY_TOKEN,
+  UsersRepository,
+} from './domain/repositories/users.repository.interface';
 
 describe('UsersService', () => {
   let app: INestApplication;
@@ -19,7 +22,7 @@ describe('UsersService', () => {
       const testApp = await setupTestApp();
       app = testApp.app;
       service = app.get(UsersService);
-      
+
       // Clear database before tests
       usersRepository = app.get<UsersRepository>(USERS_REPOSITORY_TOKEN);
       try {
@@ -28,13 +31,11 @@ describe('UsersService', () => {
         console.error('Erro ao limpar dados da tabela Users via repositório:', error);
         throw error;
       }
-  
+
       console.clear();
-      
+
       // Mock argon2.hash
-      jest.spyOn(argon2, 'hash').mockImplementation(() => 
-        Promise.resolve('hashedPassword')
-      );
+      jest.spyOn(argon2, 'hash').mockImplementation(() => Promise.resolve('hashedPassword'));
     } catch (error) {
       console.error('Erro durante a configuração dos testes:', error);
       throw error;
@@ -54,8 +55,6 @@ describe('UsersService', () => {
       Role: Roles.USER,
     });
   });
-
- 
 
   it('deve estar definido', () => {
     expect(service).toBeDefined();
@@ -98,9 +97,9 @@ describe('UsersService', () => {
 
   describe('update', () => {
     it('deve atualizar um usuário com sucesso', async () => {
-      const updateData = { 
+      const updateData = {
         Name: 'Updated Name',
-        Email: 'updated@example.com'
+        Email: 'updated@example.com',
       };
 
       const result = await service.update(testUser.Id, updateData);
@@ -116,18 +115,18 @@ describe('UsersService', () => {
       const updateData = { Name: 'Updated Name' };
 
       const result = await service.update(nonExistentId, updateData);
-      
+
       expect(result).toBeNull();
     });
   });
 
   describe('findMany', () => {
     let testUsers: User[] = [];
-    
+
     beforeEach(async () => {
       // Clear existing users
       await usersRepository.clear();
-      
+
       // Create test users with different roles
       testUsers = await Promise.all([
         service.create({
@@ -147,7 +146,7 @@ describe('UsersService', () => {
           Email: `aardvark-${Date.now()}@example.com`,
           Password: 'password123',
           Role: Roles.USER,
-        })
+        }),
       ]);
     });
 
@@ -164,9 +163,9 @@ describe('UsersService', () => {
 
     it('deve ordenar usuários por nome', async () => {
       const users = await service.findMany({ sortBy: 'Name', order: 'asc' });
-      
+
       // Verify the array is sorted by name
-      const names = users.map(user => user.Name);
+      const names = users.map((user) => user.Name);
       const sortedNames = [...names].sort();
       expect(names).toEqual(sortedNames);
     });
@@ -180,38 +179,38 @@ describe('UsersService', () => {
         Email: `inactive-${Date.now()}@example.com`,
         Password: 'password123',
       });
-      
+
       // Then update the LastLoginAt to make them inactive (31 days ago)
       const inactiveDate = new Date();
       inactiveDate.setDate(inactiveDate.getDate() - 31);
       await service.update(user.Id, { LastLoginAt: inactiveDate });
 
       const result = await service.findInactive();
-      
+
       // Should find the inactive user
-      const found = result.some(u => u.Id === user.Id);
+      const found = result.some((u) => u.Id === user.Id);
       expect(found).toBe(true);
     });
 
     it('deve encontrar usuários inativos para um número de dias especificado', async () => {
       const days = 60;
-      
+
       // First create a user
       const user = await service.create({
         Name: 'Very Inactive User',
         Email: `inactive-${Date.now()}@example.com`,
         Password: 'password123',
       });
-      
+
       // Then update the LastLoginAt to make them inactive for 61 days
       const inactiveDate = new Date();
       inactiveDate.setDate(inactiveDate.getDate() - (days + 1));
       await service.update(user.Id, { LastLoginAt: inactiveDate });
 
       const result = await service.findInactive(days);
-      
+
       // Should find the inactive user
-      const found = result.some(u => u.Id === user.Id);
+      const found = result.some((u) => u.Id === user.Id);
       expect(found).toBe(true);
     });
   });
@@ -220,7 +219,7 @@ describe('UsersService', () => {
     it('deve encontrar um usuário por ID', async () => {
       // testUser is created in beforeEach
       const result = await service.findOneById(testUser.Id);
-      
+
       expect(result).toBeDefined();
       expect(result?.Id).toBe(testUser.Id);
       expect(result?.Email).toBe(testUser.Email);
@@ -229,7 +228,7 @@ describe('UsersService', () => {
     it('deve retornar nulo se o usuário não for encontrado por ID', async () => {
       const nonExistentId = '00000000-0000-0000-0000-000000000000';
       const result = await service.findOneById(nonExistentId);
-      
+
       expect(result).toBeNull();
     });
   });
@@ -238,7 +237,7 @@ describe('UsersService', () => {
     it('deve encontrar um usuário por Email', async () => {
       // testUser is created in beforeEach
       const result = await service.findOneByEmail(testUser.Email);
-      
+
       expect(result).toBeDefined();
       expect(result?.Id).toBe(testUser.Id);
       expect(result?.Email).toBe(testUser.Email.toLowerCase()); // Email should be stored in lowercase
@@ -259,10 +258,10 @@ describe('UsersService', () => {
         Email: `delete-${Date.now()}@example.com`,
         Password: 'password123',
       });
-      
+
       // Delete the user
       await service.delete(userToDelete.Id);
-      
+
       // Verify the user was deleted
       const deletedUser = await service.findOneById(userToDelete.Id);
       expect(deletedUser).toBeNull();

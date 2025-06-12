@@ -19,6 +19,7 @@ API  construída com **NestJS + TypeScript**, autenticação JWT, controle de us
   - `POST /auth/refreshToken` — Refresh token
   - `POST /auth/signout` — Logout
   - `GET /auth/me` — Informações do usuário logado
+  - `POST /auth/forgot-password` — Solicitar recuperação de senha (envia e-mail com nova senha)
 
 ### Configura es necess rias no Google Console
 
@@ -35,7 +36,14 @@ API  construída com **NestJS + TypeScript**, autenticação JWT, controle de us
 ![Configuracao Google](./assets/cloud.png)
 
 
-### 2. Gerenciamento e CRUD de Usuários
+### 2. Recuperação de Senha
+- Fluxo de recuperação seguro via e-mail
+- Geração automática de senha temporária
+- Template de e-mail responsivo e moderno
+- Validação de e-mail e tratamento de erros
+- Segurança: Senhas armazenadas com hash usando Argon2
+
+### 3. Gerenciamento e CRUD de Usuários
 - Rotas:
   - `GET /users` — Listar usuários (admin)
   - `GET /users/me` — Ver perfil próprio
@@ -46,14 +54,14 @@ API  construída com **NestJS + TypeScript**, autenticação JWT, controle de us
   - **admin**: listar e excluir todos
   - **user**: editar/visualizar apenas o próprio perfil
 
-### 3. Filtros e Ordenação
+### 4. Filtros e Ordenação
 - Filtro por role: `?role=admin`
 - Ordenação: `?sortBy=name&order=asc`
 
-### 4. Notificações de Inativos
+### 5. Notificações de Inativos
 - Endpoint para listar usuários sem login há 30 dias
 
-### 5. Logging Estruturado e Auditoria
+### 6. Logging Estruturado e Auditoria
 - Logs em console,  Slack
 - Logger configurável: persistência e alerta por Slack
 - Exemplo:
@@ -61,13 +69,13 @@ API  construída com **NestJS + TypeScript**, autenticação JWT, controle de us
 logger.error('Falha ao salvar usuário', { payload }, { slack: true, userId });
 ```
 
-### 6. Documentação, Testes e Deploy
+### 7. Documentação, Testes e Deploy
 - Swagger em `/api/docs`
 - Testes com Jest (`yarn test`)
 - Docker Compose para ambiente local (Postgres, Redis)
 - Deploy automatizado com Render (CI/CD)
 
-### 7. Health Check
+### 8. Health Check
 O sistema oferece diferentes endpoints de health check:
 - **`/health/lb`** - Health check para load balancer (recomendado para Render)
   - Tem restrições de IP além do local (127.0.0.1 e ::1)
@@ -158,5 +166,9 @@ yarn test:e2e
 
 # Cobertura de testes
 yarn test:cov
+
+# preview template email
+ yarn email:dev
+
 ```
 
