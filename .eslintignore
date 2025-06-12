@@ -1,0 +1,7 @@
+# Ignore Jest config file
+jest.config.js
+
+# Other common ignores
+node_modules/
+dist/
+coverage/
