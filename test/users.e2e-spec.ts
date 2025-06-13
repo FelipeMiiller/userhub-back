@@ -19,12 +19,13 @@ describe('UsersController (e2e)', () => {
     app = testSetup.app;
     service = app.get(UsersService);
 
+    const res = await service.create({
+      Email: emailAdmin,
+      Password: senhaAdmin,
+      Name: 'Administrador',
+      Role: Roles.ADMIN,
+    });
 
-    const res = await service.create({ Email: emailAdmin,
-        Password: senhaAdmin,
-        Name: 'Administrador',
-        Role: Roles.ADMIN,});
-  
     expect(res.Role).toBe(Roles.ADMIN);
 
     const loginRes = await request(app.getHttpServer())

@@ -37,11 +37,14 @@ interface ResetPasswordEmailProps {
         <Text style={paragraph}>
           Foi gerada uma nova senha para a sua conta. Utilize as credenciais abaixo para fazer login:
         </Text>
-        <Button href={siteUrl} style={button}>
+          <Text style={text}>
+          <Button href={siteUrl}  style={ {textDecoration:'none', color: '#fff'} }  >
           <strong>E-mail:</strong> {userEmail}
+          </Button>
           <br />
-          <strong>Nova Senha:</strong> {newPassword}
-        </Button>
+          <strong>Nova Senha: </strong> {newPassword}
+          </Text>
+       
         <Text style={paragraph}>
           <strong>Importante:</strong> Recomendamos que você altere esta senha após o primeiro acesso nas configurações da sua conta.
         </Text>
@@ -79,7 +82,7 @@ const paragraph = {
   fontSize: '16px',
 };
 
-const button = {
+const text = {
   backgroundColor: '#0a0a0a',
   borderRadius: '3px',
   color: '#fff',

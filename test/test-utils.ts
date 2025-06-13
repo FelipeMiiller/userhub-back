@@ -1,7 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import { AppModule } from '../src/app.module';
-import { USERS_REPOSITORY_TOKEN, UsersRepository } from 'src/modules/users/domain/repositories/users.repository.interface';
+import {
+  USERS_REPOSITORY_TOKEN,
+  UsersRepository,
+} from 'src/modules/users/domain/repositories/users.repository.interface';
 
 // Store app instance for cleanup
 let appInstance: INestApplication | null = null;
@@ -24,7 +27,7 @@ export async function setupTestApp(): Promise<{
 
   const app = moduleFixture.createNestApplication();
   await app.init();
-  
+
   // Store the app instance for cleanup
   appInstance = app;
 
@@ -52,15 +55,15 @@ export async function teardownTestApp(app: INestApplication): Promise<void> {
 
     // Close the app
     await app.close();
-    
+
     // Clear the app instance
     if (appInstance === app) {
       appInstance = null;
     }
 
     // Add a small delay to allow for cleanup
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
     // Force garbage collection if available
     if (global.gc) {
       global.gc();
@@ -77,7 +80,3 @@ process.on('exit', async () => {
     await teardownTestApp(appInstance);
   }
 });
-
-
-
-

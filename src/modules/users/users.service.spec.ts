@@ -19,12 +19,11 @@ describe('UsersService', () => {
   beforeAll(async () => {
     const testApp = await setupTestApp();
     app = testApp.app;
-    usersRepository= testApp.usersRepository
+    usersRepository = testApp.usersRepository;
     service = app.get(UsersService);
- 
-      // Mock argon2.hash
-      jest.spyOn(argon2, 'hash').mockImplementation(() => Promise.resolve('hashedPassword'));
-  
+
+    // Mock argon2.hash
+    jest.spyOn(argon2, 'hash').mockImplementation(() => Promise.resolve('hashedPassword'));
   });
 
   afterAll(async () => {
@@ -32,7 +31,6 @@ describe('UsersService', () => {
   });
 
   beforeEach(async () => {
-
     testUser = await service.create({
       Name: 'Test User',
       Email: `test-${Date.now()}@example.com`,
@@ -60,8 +58,8 @@ describe('UsersService', () => {
       expect(result).toBeDefined();
       expect(result.Name).toBe(input.Name);
       expect(result.Email).toBe(input.Email.toLowerCase());
-      expect(result.Role).toBe(Roles.USER); 
-      expect(result.Password).not.toBe(input.Password); 
+      expect(result.Role).toBe(Roles.USER);
+      expect(result.Password).not.toBe(input.Password);
     });
 
     it('deve criar um usuário com um papel especificado', async () => {
@@ -109,10 +107,8 @@ describe('UsersService', () => {
     let testUsers: User[] = [];
 
     beforeEach(async () => {
-    
       await usersRepository.clear();
 
-      
       testUsers = await Promise.all([
         service.create({
           Name: 'User 1',
@@ -149,7 +145,6 @@ describe('UsersService', () => {
     it('deve ordenar usuários por nome', async () => {
       const users = await service.findMany({ sortBy: 'Name', order: 'asc' });
 
-
       const names = users.map((user) => user.Name);
       const sortedNames = [...names].sort();
       expect(names).toEqual(sortedNames);
@@ -158,20 +153,17 @@ describe('UsersService', () => {
 
   describe('findInactive', () => {
     it('deve encontrar usuários inativos nos últimos 30 dias (padrão)', async () => {
-
       const user = await service.create({
         Name: 'Inactive User',
         Email: `inactive-${Date.now()}@example.com`,
         Password: 'password123',
       });
 
-  
       const inactiveDate = new Date();
       inactiveDate.setDate(inactiveDate.getDate() - 31);
       await service.update(user.Id, { LastLoginAt: inactiveDate });
 
       const result = await service.findInactive();
-
 
       const found = result.some((u) => u.Id === user.Id);
       expect(found).toBe(true);
@@ -180,20 +172,18 @@ describe('UsersService', () => {
     it('deve encontrar usuários inativos para um número de dias especificado', async () => {
       const days = 60;
 
-   
       const user = await service.create({
         Name: 'Very Inactive User',
         Email: `inactive-${Date.now()}@example.com`,
         Password: 'password123',
       });
 
-  
       const inactiveDate = new Date();
       inactiveDate.setDate(inactiveDate.getDate() - (days + 1));
       await service.update(user.Id, { LastLoginAt: inactiveDate });
 
       const result = await service.findInactive(days);
-console.log("result", result);
+      console.log('result', result);
       // Should find the inactive user
       const found = result.some((u) => u.Id === user.Id);
       expect(found).toBe(true);
@@ -202,7 +192,6 @@ console.log("result", result);
 
   describe('findOneById', () => {
     it('deve encontrar um usuário por ID', async () => {
-      
       const result = await service.findOneById(testUser.Id);
 
       expect(result).toBeDefined();
@@ -220,12 +209,11 @@ console.log("result", result);
 
   describe('findOneByEmail', () => {
     it('deve encontrar um usuário por Email', async () => {
-     
       const result = await service.findOneByEmail(testUser.Email);
 
       expect(result).toBeDefined();
       expect(result?.Id).toBe(testUser.Id);
-      expect(result?.Email).toBe(testUser.Email.toLowerCase()); 
+      expect(result?.Email).toBe(testUser.Email.toLowerCase());
     });
 
     it('deve retornar nulo se o usuário não for encontrado por Email', async () => {
@@ -237,7 +225,6 @@ console.log("result", result);
 
   describe('delete', () => {
     it('deve deletar um usuário', async () => {
-  
       const userToDelete = await service.create({
         Name: 'User to Delete',
         Email: `delete-${Date.now()}@example.com`,
@@ -246,7 +233,6 @@ console.log("result", result);
 
       await service.delete(userToDelete.Id);
 
-  
       const deletedUser = await service.findOneById(userToDelete.Id);
       expect(deletedUser).toBeNull();
     });
@@ -255,6 +241,4 @@ console.log("result", result);
       await expect(service.delete('non-existent-id')).resolves.not.toThrow();
     });
   });
-
-
 });
