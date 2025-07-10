@@ -1,19 +1,15 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { UserEvents } from 'src/common/events/events.enum';
-
 import { UserInput } from '../http/dtos/create-users.dto';
 import { LoggerService } from 'src/common/loggers/domain/logger.service';
 import { Roles, User } from './models/users.models';
 import { USERS_REPOSITORY_TOKEN, UsersRepository } from './repositories/users.repository.interface';
 import * as argon2 from 'argon2';
 import { LessThanOrEqual } from 'typeorm';
-
-import WelcomeEmail from 'emails/welcome-email';
 import { UserCreatedEvent } from 'src/common/events/user-created.event';
 import { ResetPasswordEvent } from 'src/common/events/reset-password.event';
-import ResetPasswordEmail from 'emails/reset-password-email';
-import { MailService } from 'src/common/mail/domain/mail.service';
+import { MailService } from 'src/modules/mail/domain/mail.service';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
@@ -58,10 +54,11 @@ export class UsersService {
       await this.mailService.sendMail({
         email: event.email,
         subject: 'Bem-vindo ao UserHub',
-        template: WelcomeEmail({
+        template: 'welcome',
+        context: {
           userFirstname: event.name,
           siteUrl: this.configService.get('app.frontendUrl'),
-        }),
+        },
       });
       this.loggerService.info(`E-mail de boas-vindas enviado para: ${event.email}`);
     } catch (error) {
@@ -105,12 +102,13 @@ export class UsersService {
       await this.mailService.sendMail({
         email: event.email,
         subject: 'Nova Senha - UserHub',
-        template: ResetPasswordEmail({
+        template: 'reset-password',
+        context: {
           userFirstname: event.name,
           newPassword: event.newPassword,
           userEmail: event.email,
           siteUrl: this.configService.get('app.frontendUrl'),
-        }),
+        },
       });
 
       this.loggerService.info(`E-mail de recuperação de senha enviado para: ${event.email}`);

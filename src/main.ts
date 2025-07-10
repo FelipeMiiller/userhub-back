@@ -4,21 +4,15 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { LoggerService } from './common/loggers/domain/logger.service';
 import { AppModule } from './app.module';
 import appConfig from './config/app.config';
-import { getCorsOptions } from './config/cors-options';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  const env: ConfigType<typeof appConfig> = app.get(ConfigService).get('app');
+  const configService = app.get(ConfigService);
+  const AppConfig: ConfigType<typeof appConfig> = configService.get('app');
   const logger = await app.resolve(LoggerService);
-
   logger.contextName = bootstrap.name;
 
-  // Importa a configuração CORS
-
-  const corsOptions = getCorsOptions(env);
-
-  // Habilita o CORS com as opções configuradas
-  app.enableCors(corsOptions);
+  app.enableCors(AppConfig.corsConfig);
 
   const configSwagger = new DocumentBuilder()
     .setTitle('UserHub')
@@ -32,8 +26,8 @@ async function bootstrap() {
 
   app.enableShutdownHooks();
 
-  await app.listen(env.port);
+  await app.listen(AppConfig.port);
 
-  logger.info(`Application is running on port ${env.port}`);
+  logger.info(`Application is running on port ${AppConfig.port}`);
 }
 bootstrap();

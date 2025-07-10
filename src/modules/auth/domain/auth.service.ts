@@ -6,10 +6,8 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { generateRandomPassword } from 'src/common/utils/password.utils';
 import { ConfigType } from '@nestjs/config';
-import * as crypto from 'crypto';
 import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
 import jwtConfig from 'src/config/jwt.config';
@@ -17,7 +15,7 @@ import refreshJwtConfig from 'src/config/refresh-jwt.config';
 import { Roles, User } from 'src/modules/users/domain/models/users.models';
 import { UsersService } from 'src/modules/users/domain/users.service';
 import { Login, Payload } from './types';
-import { UserEvents } from 'src/common/events/events.enum';
+
 import { LoggerService } from 'src/common/loggers/domain/logger.service';
 
 @Injectable()

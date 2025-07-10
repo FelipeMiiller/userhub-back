@@ -7,7 +7,6 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
 import slackConfig from './config/slack.config';
-import { pathEnv } from './config/pathEnv';
 import appConfig from './config/app.config';
 import redisConfig from './config/redis.config';
 import typeormConfig from './config/typeorm.config';
@@ -20,21 +19,21 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { LoggerService } from './common/loggers/domain/logger.service';
 import { AllExceptionsFilter } from './common/filters/exception.filter';
 import { CacheModule } from '@nestjs/cache-manager';
-import { ThrottlerConfigModule } from './common/throttler/throttler.module';
 import { HealthController } from './common/health/http/health-check.controller';
 import { BullModule } from '@nestjs/bullmq';
-import { MailModule } from './common/mail/mail.module';
+import { MailModule } from './modules/mail/mail.module';
+import { pathEnv } from './config/pathEnv';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
-      envFilePath: [pathEnv],
       isGlobal: true,
       load: [appConfig, typeormConfig, slackConfig, redisConfig],
+      envFilePath: pathEnv,
     }),
+
     EventEmitterModule.forRoot(),
     BullModule.forRootAsync({
-      imports: [ConfigModule.forRoot({ load: [redisConfig] })],
       useFactory: (configDatabase: ConfigType<typeof redisConfig>) => ({
         connection: {
           port: configDatabase.port,
@@ -44,13 +43,12 @@ import { MailModule } from './common/mail/mail.module';
       inject: [redisConfig.KEY],
     }),
     CacheModule.registerAsync({
-      imports: [ConfigModule],
       isGlobal: true,
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => {
         if (process.env.NODE_ENV === 'test') {
           return {
-            store: 'none' as any,
+            store: 'none',
             ttl: 0,
           };
         }
@@ -68,8 +66,6 @@ import { MailModule } from './common/mail/mail.module';
       },
     }),
     MailModule,
-    ThrottlerConfigModule,
-
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => configService.get('typeorm'),
@@ -79,7 +75,6 @@ import { MailModule } from './common/mail/mail.module';
     UsersModule,
     AuthModule,
   ],
-
   providers: [
     ...(process.env.NODE_ENV !== 'test'
       ? [

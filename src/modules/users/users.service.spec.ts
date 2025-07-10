@@ -3,31 +3,29 @@ import { UsersService } from './domain/users.service';
 import { UserInput } from './http/dtos/create-users.dto';
 import { Roles, User } from './domain/models/users.models';
 import * as argon2 from 'argon2';
-import { setupTestApp, teardownTestApp } from '../../../test/test-utils';
-import {
-  USERS_REPOSITORY_TOKEN,
-  UsersRepository,
-} from './domain/repositories/users.repository.interface';
+import { setupTestApp } from 'test/setup';
+import { DataSource } from 'typeorm';
 
 describe('UsersService', () => {
   let app: INestApplication;
+  let dataSource: DataSource;
   let service: UsersService;
-  let usersRepository: UsersRepository;
 
   let testUser: User;
 
   beforeAll(async () => {
     const testApp = await setupTestApp();
     app = testApp.app;
-    usersRepository = testApp.usersRepository;
+    dataSource = testApp.dataSource;
     service = app.get(UsersService);
-
+    await dataSource.query('TRUNCATE TABLE "Users"');
     // Mock argon2.hash
     jest.spyOn(argon2, 'hash').mockImplementation(() => Promise.resolve('hashedPassword'));
   });
 
   afterAll(async () => {
-    await teardownTestApp(app);
+    await dataSource.query('TRUNCATE TABLE "Users"');
+    await app.close();
   });
 
   beforeEach(async () => {
@@ -107,7 +105,7 @@ describe('UsersService', () => {
     let testUsers: User[] = [];
 
     beforeEach(async () => {
-      await usersRepository.clear();
+      await dataSource.query('TRUNCATE TABLE "Users"');
 
       testUsers = await Promise.all([
         service.create({
@@ -183,7 +181,7 @@ describe('UsersService', () => {
       await service.update(user.Id, { LastLoginAt: inactiveDate });
 
       const result = await service.findInactive(days);
-      console.log('result', result);
+
       // Should find the inactive user
       const found = result.some((u) => u.Id === user.Id);
       expect(found).toBe(true);

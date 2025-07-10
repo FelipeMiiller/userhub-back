@@ -1,13 +1,14 @@
 import * as request from 'supertest';
 import { INestApplication } from '@nestjs/common';
 import { Roles } from 'src/modules/users/domain/models/users.models';
-import { setupTestApp, teardownTestApp } from './test-utils';
 import { UsersService } from 'src/modules/users/domain/users.service';
+import { setupTestApp } from 'test/setup';
+import { DataSource } from 'typeorm';
 
 describe('UsersController (e2e)', () => {
   let app: INestApplication;
+  let dataSource: DataSource;
   let tokenAdmin: string;
-
   let usuarioId: string;
   let service: UsersService;
 
@@ -17,30 +18,35 @@ describe('UsersController (e2e)', () => {
   beforeAll(async () => {
     const testSetup = await setupTestApp();
     app = testSetup.app;
+    dataSource = testSetup.dataSource;
     service = app.get(UsersService);
-
-    const res = await service.create({
-      Email: emailAdmin,
-      Password: senhaAdmin,
-      Name: 'Administrador',
-      Role: Roles.ADMIN,
-    });
-
-    expect(res.Role).toBe(Roles.ADMIN);
-
-    const loginRes = await request(app.getHttpServer())
-      .post('/auth/signin')
-      .send({ Email: emailAdmin, Password: senhaAdmin });
-    console.log('loginRes.body', loginRes.body);
-
-    tokenAdmin = loginRes.body.data.accessToken;
+    await dataSource.query('TRUNCATE TABLE "Users"');
   });
 
   afterAll(async () => {
-    await teardownTestApp(app);
+    await dataSource.query('TRUNCATE TABLE "Users"');
+    await app.close();
   });
 
   describe('POST /users', () => {
+    it('deve criar um usuario administrador', async () => {
+      const res = await service.create({
+        Email: emailAdmin,
+        Password: senhaAdmin,
+        Name: 'Administrador',
+        Role: Roles.ADMIN,
+      });
+
+      expect(res.Role).toBe(Roles.ADMIN);
+
+      const loginRes = await request(app.getHttpServer())
+        .post('/auth/signin')
+        .send({ Email: emailAdmin, Password: senhaAdmin });
+
+      tokenAdmin = loginRes.body.data.accessToken;
+      console.log('tokenAdmin', tokenAdmin);
+    });
+
     it('deve criar um novo usuário', async () => {
       const usuario = {
         Email: `usuario_${Date.now()}@exemplo.com`,

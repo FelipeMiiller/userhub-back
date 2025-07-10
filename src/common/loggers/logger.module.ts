@@ -5,7 +5,6 @@ import { LoggerService } from './domain/logger.service';
 import { SlackLoggerService } from './domain/slack-logger.service';
 @Global()
 @Module({
-  imports: [],
   providers: [LoggerService, SlackLoggerService],
   exports: [LoggerService],
 })

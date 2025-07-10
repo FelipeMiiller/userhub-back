@@ -1,7 +1,6 @@
 import {
   BadRequestException,
   ConflictException,
-  InternalServerErrorException,
   UnprocessableEntityException,
 } from '@nestjs/common';
 import {
@@ -13,6 +12,7 @@ import {
   Repository,
   SaveOptions,
 } from 'typeorm';
+import { DatabaseException } from '../exeption/database.exception';
 
 interface PostgresError {
   code: string;
@@ -23,11 +23,7 @@ interface PostgresError {
   [key: string]: any;
 }
 
-/**
- * BaseTypeOrmRepository<T> centraliza tratamento de erros comuns do PostgreSQL/TypeORM.
- * Herde esta classe nos repositórios específicos para DRY e padronização.
- */
-export abstract class BaseTypeOrmRepository<T> {
+export abstract class DefaultRepository<T> {
   constructor(protected readonly repository: Repository<T>) {}
 
   protected handlePostgresError(error: unknown): never {
@@ -55,8 +51,9 @@ export abstract class BaseTypeOrmRepository<T> {
             description: 'Verifique as restrições dos campos.',
           });
         default:
-          throw new InternalServerErrorException(
-            'Ocorreu um erro desconhecido no banco de dados.',
+          throw new DatabaseException(
+            'Ocorreu um erro inesperado no banco de dados.',
+            pgError.code,
             {
               cause: pgError,
               description: `Código de erro PostgreSQL: ${pgError.code}`,
@@ -64,9 +61,7 @@ export abstract class BaseTypeOrmRepository<T> {
           );
       }
     }
-    throw new InternalServerErrorException('Ocorreu um erro inesperado no banco de dados.', {
-      cause: error,
-    });
+    throw new DatabaseException('Ocorreu um erro desconhecido no banco de dados.');
   }
 
   async create(entity: DeepPartial<T>, options?: SaveOptions): Promise<T> {
@@ -124,14 +119,6 @@ export abstract class BaseTypeOrmRepository<T> {
   ): Promise<void> {
     try {
       await this.repository.delete(criteria);
-    } catch (error) {
-      this.handlePostgresError(error);
-    }
-  }
-
-  async clear(): Promise<void> {
-    try {
-      await this.repository.clear();
     } catch (error) {
       this.handlePostgresError(error);
     }

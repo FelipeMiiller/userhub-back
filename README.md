@@ -21,7 +21,7 @@ API  construída com **NestJS + TypeScript**, autenticação JWT, controle de us
   - `GET /auth/me` — Informações do usuário logado
   - `POST /auth/forgot-password` — Solicitar recuperação de senha (envia e-mail com nova senha)
 
-### Configura es necess rias no Google Console
+### Configurações necessárias no Google Console
 
 - No Google Cloud Console, criar um projeto e ativar a API Google Sign-In.
 - Em "APIs & Services" > "Dashboard", criar um "OAuth client ID" do tipo "Web application".
