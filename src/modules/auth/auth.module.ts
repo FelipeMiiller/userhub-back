@@ -24,7 +24,7 @@ import { PassportModule } from '@nestjs/passport';
     ConfigModule.forFeature(jwtConfig),
     ConfigModule.forFeature(refreshJwtConfig),
     ConfigModule.forFeature(googleOauthConfig),
-    forwardRef(() => UsersModule),
+    UsersModule,
   ],
   controllers: [AuthController],
   providers: [

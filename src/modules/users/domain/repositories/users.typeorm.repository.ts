@@ -2,13 +2,13 @@ import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 
 import { UserEntity } from '../entities/users.entities';
-import { BaseTypeOrmRepository } from 'src/common/shared/base-typeorm.repository';
+import { DefaultRepository } from 'src/common/typeorm/repository/default.repository';
 import { UsersRepository } from './users.repository.interface';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class UsersTypeOrmRepository
-  extends BaseTypeOrmRepository<UserEntity>
+  extends DefaultRepository<UserEntity>
   implements UsersRepository
 {
   constructor(

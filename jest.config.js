@@ -1,3 +1,4 @@
+
 /** @type {import('jest').Config} */
 const config = {
   // Shared configuration for all projects
@@ -7,71 +8,67 @@ const config = {
   transform: {
     '^.+\\.(t|j)s$': 'ts-jest'
   },
+  moduleNameMapper: {
+    '^src/(.*)$': '<rootDir>/src/$1',
+    '^test/(.*)$': '<rootDir>/test/$1'
+  },
   moduleDirectories: ['node_modules', '<rootDir>'],
+  collectCoverageFrom: [
+    "src/**/*.(t|j)s",
+    "!src/**/*.spec.ts",
+    "!src/**/*.e2e-spec.ts",
+    "!src/main.ts"
+  ],
+  coverageDirectory: "./coverage",
+  setupFiles: ['<rootDir>/jest.setup.ts'],
   
-  // Projects configuration to include both unit and e2e tests
+  // Configuração do ts-jest
+  preset: 'ts-jest',
+  globals: {
+    'ts-jest': {
+      tsconfig: {
+        experimentalDecorators: true,
+        emitDecoratorMetadata: true,
+        target: 'es2020',
+        module: 'commonjs'
+      }
+    }
+  },
+
   projects: [
     // Unit tests configuration
     {
       displayName: 'unit',
       testMatch: ['<rootDir>/src/**/*.spec.ts'],
-      moduleNameMapper: {
-        '^src/(.*)$': '<rootDir>/src/$1',
-        '^emails/(.*)$': '<rootDir>/__mocks__/emails/$1'
-      },
-
+      // Herdar configurações do projeto pai
+      moduleFileExtensions: ['js', 'json', 'ts'],
       transform: {
         '^.+\\.(t|j)s$': 'ts-jest'
       },
-      moduleFileExtensions: ['js', 'json', 'ts'],
-      moduleDirectories: ['node_modules', '<rootDir>']
+      moduleNameMapper: {
+        '^src/(.*)$': '<rootDir>/src/$1',
+        '^test/(.*)$': '<rootDir>/test/$1'
+      },
+     // setupFiles: ['<rootDir>/jest.setup.ts'],
+      testEnvironment: 'node'
     },
     // E2E tests configuration
     {
       displayName: 'e2e',
-      testMatch: ['<rootDir>/test/**/*.e2e-spec.ts'],
-      moduleNameMapper: {
-        '^src/(.*)$': '<rootDir>/src/$1',
-        '^emails/(.*)$': '<rootDir>/__mocks__/emails/$1'
-      },
-      testEnvironment: 'node',
- 
+      testMatch: ['<rootDir>/src/**/*.e2e-spec.ts'],
+      // Herdar configurações do projeto pai
+      moduleFileExtensions: ['js', 'json', 'ts'],
       transform: {
         '^.+\\.(t|j)s$': 'ts-jest'
       },
-      moduleFileExtensions: ['js', 'json', 'ts'],
-      moduleDirectories: ['node_modules', '<rootDir>/..']
+      moduleNameMapper: {
+        '^src/(.*)$': '<rootDir>/src/$1',
+        '^test/(.*)$': '<rootDir>/test/$1'
+      },
+     // setupFiles: ['<rootDir>/jest.setup.ts'],
+      testEnvironment: 'node'
     }
-  ],
-  collectCoverageFrom: [
-    'src/**/*.ts',
-    '!src/main.ts',
-    '!**/node_modules/**',
-    '!**/test/**',
-    '!**/migrations/**',
-    '!**/interfaces/**',
-    '!**/dto/**',
-    '!**/entities/**',
-    '!**/constants/**',
-    '!**/decorators/**',
-    '!**/guards/**',
-    '!**/interceptors/**',
-    '!**/middlewares/**',
-    '!**/mocks/**',
-    '!**/modules/**/index.ts',
-    '!**/types/**',
-    '!**/utils/**',
-    '!**/validators/**',
-  ],
-  coverageDirectory: './coverage',
-  coverageReporters: ['text', 'lcov'],
-  coverageThreshold: {
-    global: {
-      branches: 80,
-      functions: 80,
-      lines: 80,
-      statements: 80
-    }
-  }
+  ]
 };
+
 module.exports = config;

@@ -1,9 +1,9 @@
 import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
 import { Observable } from 'rxjs';
-import { tap, catchError } from 'rxjs/operators';
+import { tap } from 'rxjs/operators';
 import { LoggerService } from '../loggers/domain/logger.service';
 import { Reflector } from '@nestjs/core';
-import { SKIP_LOGGING_KEY } from './decorator/skip-logging.decorator';
+
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
@@ -17,12 +17,6 @@ export class LoggingInterceptor implements NestInterceptor {
   }
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
-    const skipLogging = this.reflector.get<boolean>(SKIP_LOGGING_KEY, context.getHandler());
-
-    if (skipLogging) {
-      return next.handle();
-    }
-
     const req = context.switchToHttp().getRequest();
     const { method, url, ip } = req;
     const now = Date.now();

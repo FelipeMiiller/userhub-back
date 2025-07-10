@@ -1,4 +1,4 @@
-import { randomBytes, randomInt } from 'crypto';
+import { randomInt } from 'crypto';
 
 export function generateRandomPassword(length = 12): string {
   const lowercase = 'abcdefghijklmnopqrstuvwxyz';

@@ -31,7 +31,6 @@ export interface UsersRepository {
       | FindOptionsWhere<UserEntity>
       | FindOptionsWhere<UserEntity>[],
   ): Promise<void>;
-  clear(): Promise<void>;
 }
 
 export const USERS_REPOSITORY_TOKEN = 'users-repository-token';

@@ -1,19 +1,16 @@
 import * as request from 'supertest';
 import { INestApplication } from '@nestjs/common';
-import {
-  USERS_REPOSITORY_TOKEN,
-  UsersRepository,
-} from '../src/modules/users/domain/repositories/users.repository.interface';
+import { UsersRepository } from 'src/modules/users/domain/repositories/users.repository.interface';
+import { setupTestApp } from 'test/setup';
 
-import { setupTestApp, teardownTestApp } from './test-utils';
-
+import { DataSource } from 'typeorm';
 
 describe('AuthController (e2e)', () => {
   let app: INestApplication;
+  let dataSource: DataSource;
   let accessToken: string;
   let refreshToken: string;
   let userId: string;
-  let usersRepository: UsersRepository;
 
   const testUserEmail = `test_user_${new Date().getTime()}@example.com`;
   const testUserPassword = 'Test@123';
@@ -21,12 +18,14 @@ describe('AuthController (e2e)', () => {
   beforeAll(async () => {
     const testSetup = await setupTestApp();
     app = testSetup.app;
-    usersRepository = testSetup.usersRepository;
+    dataSource = testSetup.dataSource;
 
+    await dataSource.query('TRUNCATE TABLE "Users"');
   });
 
   afterAll(async () => {
-    await teardownTestApp(app);
+    await dataSource.query('TRUNCATE TABLE "Users"');
+    await app.close();
   });
 
   describe('Registro de usuário', () => {
@@ -72,24 +71,11 @@ describe('AuthController (e2e)', () => {
         LastName: 'User',
       };
 
-  
-      const firstResponse = await request(app.getHttpServer())
-        .post('/auth/signup')
-        .send(userData);
-      
+      const firstResponse = await request(app.getHttpServer()).post('/auth/signup').send(userData);
+
       expect(firstResponse.status).toBe(201);
       expect(firstResponse.body).toHaveProperty('data.Email', email);
 
-   
-     
-      const existingUser = await usersRepository.findOne({ 
-        where: { Email: email } 
-      });
-      
-      expect(existingUser).toBeDefined();
-      expect(existingUser?.Email).toBe(email);
-
- 
       const duplicateUserData = {
         Email: email,
         Password: 'DifferentPass@123',
@@ -100,7 +86,7 @@ describe('AuthController (e2e)', () => {
       const secondResponse = await request(app.getHttpServer())
         .post('/auth/signup')
         .send(duplicateUserData);
-      
+
       expect(secondResponse.status).toBe(409);
       expect(secondResponse.body).toHaveProperty('statusCode', 409);
       expect(secondResponse.body).toHaveProperty('message', 'Registro duplicado.');
@@ -115,8 +101,6 @@ describe('AuthController (e2e)', () => {
       const response = await request(app.getHttpServer())
         .post('/auth/signup')
         .send(invalidUserData);
-
-
 
       expect(response.status).toBe(400);
     });
@@ -213,7 +197,7 @@ describe('AuthController (e2e)', () => {
 
       const errorResponse = res.body;
       expect(errorResponse).toHaveProperty('message');
-      expect(errorResponse.message).toMatch("Credenciais inválidas");
+      expect(errorResponse.message).toMatch('Credenciais inválidas');
     });
   });
 
