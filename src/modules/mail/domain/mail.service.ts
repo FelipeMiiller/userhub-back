@@ -5,11 +5,13 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as handlebars from 'handlebars';
 import mailConfig from 'src/config/mail.config';
+import appConfig from 'src/config/app.config';
+import { MailTemplates } from './constants/mail-templates.enum';
 
 interface SendMailConfiguration {
   email: string;
   subject: string;
-  template: string; // Nome do arquivo do template (sem a extensão)
+  template: MailTemplates; // Nome do arquivo do template (sem a extensão)
   context: Record<string, any>; // Dados para o template
   text?: string;
 }
@@ -21,24 +23,26 @@ export class MailService {
 
   constructor(
     @Inject(mailConfig.KEY)
-    private readonly config: ConfigType<typeof mailConfig>,
+    private readonly configMail: ConfigType<typeof mailConfig>,
+    @Inject(appConfig.KEY)
+    private readonly configApp: ConfigType<typeof appConfig>,
   ) {
     this.templatesDir = path.join(process.cwd(), 'src/modules/mail/domain/templates');
 
     this.transporter = nodemailer.createTransport(
       {
-        host: this.config.host,
-        port: this.config.port,
-        secure: this.config.secure,
+        host: this.configMail.host,
+        port: this.configMail.port,
+        secure: this.configMail.secure,
         auth: {
-          user: this.config.user,
-          pass: this.config.password,
+          user: this.configMail.user,
+          pass: this.configMail.password,
         },
       },
       {
         from: {
-          name: this.config.fromName,
-          address: this.config.fromAddress,
+          name: this.configMail.fromName,
+          address: this.configMail.fromAddress,
         },
       },
     );
@@ -69,6 +73,32 @@ export class MailService {
     } catch (error) {
       throw new Error(`Falha ao enviar email: ${error.message}`);
     }
+  }
+
+  sendResetPasswordEmail(email: string, name: string, newPassword: string) {
+    this.sendMail({
+      email,
+      subject: 'Nova Senha - UserHub',
+      template: MailTemplates.RESET_PASSWORD,
+      context: {
+        userFirstname: name,
+        newPassword,
+        userEmail: email,
+        siteUrl: this.configApp.frontendDomain,
+      },
+    });
+  }
+
+  sendWelcomeEmail(email: string, name: string) {
+    this.sendMail({
+      email,
+      subject: 'Bem-vindo ao UserHub',
+      template: MailTemplates.WELCOME,
+      context: {
+        userFirstname: name,
+        siteUrl: this.configApp.frontendDomain,
+      },
+    });
   }
 
   private generatePlainText(html: string): string {

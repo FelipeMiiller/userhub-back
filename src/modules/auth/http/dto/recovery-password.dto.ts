@@ -1,5 +1,6 @@
 import { IsEmail, IsNotEmpty } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 
 export class RecoveryPasswordDto {
   @ApiProperty({
@@ -7,7 +8,9 @@ export class RecoveryPasswordDto {
     example: 'usuario@exemplo.com',
     required: true,
   })
-  @IsEmail({}, { message: 'E-mail inválido' })
-  @IsNotEmpty({ message: 'O e-mail é obrigatório' })
-  email: string;
+  @IsEmail()
+  @IsNotEmpty()
+  @Transform(({ value }) => value.toLowerCase().trim())
+  readonly Email: string;
 }
+

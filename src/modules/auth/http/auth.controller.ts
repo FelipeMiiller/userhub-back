@@ -28,6 +28,7 @@ import { UserInputAuth } from './dto/create-users.dto';
 import { UserInputSignin } from './dto/signin-users.dto';
 import { RecoveryPasswordDto } from './dto/recovery-password.dto';
 import { LoggerService } from 'src/common/loggers/domain/logger.service';
+import { ChangePasswordDto } from './dto/change-password.dto';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -72,7 +73,7 @@ export class AuthController {
   @HttpCode(HttpStatus.ACCEPTED)
   async ForgotPassword(@Body() recoveryDto: RecoveryPasswordDto): Promise<{ message: string }> {
     try {
-      await this.authService.resetPassword(recoveryDto.email);
+      await this.authService.recoveryPassword(recoveryDto.Email);
       return {
         message:
           'Se o e-mail estiver cadastrado, você receberá instruções para redefinir sua senha.',
@@ -83,7 +84,40 @@ export class AuthController {
         error.stack,
         {
           slack: true,
-          userId: recoveryDto.email,
+          userId: recoveryDto.Email,
+        },
+      );
+      throw new BadRequestException(
+        'Não foi possível processar sua solicitação. Por favor, tente novamente.',
+      );
+    }
+  }
+
+  @ApiOperation({ summary: 'Redefine a senha do usuário' })
+  @ApiBody({ type: ChangePasswordDto })
+  @ApiResponse({
+    status: 202,
+    description: 'Senha redefinida com sucesso',
+  })
+  @Public()
+  @Post('change-password')
+  @HttpCode(HttpStatus.ACCEPTED)
+  async ChangePassword(
+    @Body() changeDto: ChangePasswordDto,
+  ): Promise<{ message: string }> {
+    try {
+  
+      await this.authService.changePassword(changeDto);
+      return {
+        message: 'Senha alterada com sucesso.',
+      };
+    } catch (error) {
+      this.loggerService.error(
+        `Erro ao processar alteração de senha: ${error.message}`,
+        error.stack,
+        {
+          slack: true,
+          userId: changeDto.Email,
         },
       );
       throw new BadRequestException(

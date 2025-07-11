@@ -17,6 +17,7 @@ import { UsersService } from 'src/modules/users/domain/users.service';
 import { Login, Payload } from './types';
 
 import { LoggerService } from 'src/common/loggers/domain/logger.service';
+import { ChangePasswordDto } from '../http/dto/change-password.dto';
 
 @Injectable()
 export class AuthService {
@@ -30,6 +31,138 @@ export class AuthService {
     private readonly loggerService: LoggerService,
   ) {
     this.loggerService.contextName = AuthService.name;
+  }
+
+  async loginUser(user: User): Promise<Login> {
+    const payload: Payload = {
+      sub: user.Id,
+      email: user.Email,
+      role: user.Role,
+      status: user.Status,
+    };
+
+    const { accessToken, refreshToken } = await this.generateToken(payload);
+    const hashRefreshToken = await argon2.hash(refreshToken);
+
+    const userUpdated = await this.usersService.update(user.Id, {
+      HashRefreshToken: hashRefreshToken,
+      LastLoginAt: new Date(),
+    });
+
+    if (!userUpdated) {
+      throw new UnauthorizedException('Não foi gerado token de acesso!');
+    }
+
+    return {
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+    };
+  }
+
+  async recoveryPassword(email: string): Promise<void> {
+    const user = await this.usersService.findOneByEmail(email);
+
+    if (!user) {
+      this.loggerService.error(
+        `Tentativa de recuperação de senha para e-mail não cadastrado: ${email}`,
+        { slack: true },
+      );
+      throw new BadRequestException('E-mail não cadastrado');
+    }
+    await this.usersService.resetPassword(user.Id);
+  }
+
+  async changePassword(changeDto: ChangePasswordDto & { Email: string }): Promise<void> {
+    const validateUser = await this.validateUser(changeDto.Email, changeDto.Password);
+
+    if (!validateUser) {
+      this.loggerService.error(
+        `Tentativa de recuperação de senha para e-mail não cadastrado: ${changeDto.Email}`,
+        { slack: true },
+      );
+      throw new BadRequestException('E-mail não cadastrado');
+    }
+    const hashedPassword = await argon2.hash(changeDto.NewPassword);
+    await this.usersService.update(validateUser.Id, { Password: hashedPassword });
+  }
+
+  async updateRefreshTokenUser(id: string, refreshToken: string) {
+    return this.usersService.update(id, { HashRefreshToken: refreshToken });
+  }
+
+  async refreshToken({ refreshToken }: Omit<Login, 'accessToken'>): Promise<Login> {
+    const verifiedRefreshPayload: Payload = await this.verifyRefreshToken(refreshToken);
+
+    const newAccessTokenPayload: Omit<Payload, 'iat' | 'exp'> = {
+      sub: verifiedRefreshPayload.sub,
+      email: verifiedRefreshPayload.email,
+      role: verifiedRefreshPayload.role,
+      status: verifiedRefreshPayload.status,
+    };
+
+    const newAccessToken = await this.jwtService.signAsync(newAccessTokenPayload, {
+      secret: this.jwtConfiguration.secret,
+      ...this.jwtConfiguration.signOptions,
+    });
+    return {
+      accessToken: newAccessToken,
+      refreshToken: refreshToken,
+    };
+  }
+
+  async generateToken(payload: Payload): Promise<{ accessToken: string; refreshToken: string }> {
+    const [accessToken, refreshToken] = await Promise.all([
+      this.jwtService.signAsync(payload),
+      this.jwtService.signAsync(payload, {
+        secret: this.refresTokenConfig.secret,
+        ...this.refresTokenConfig.signOptions,
+      }),
+    ]);
+
+    return { accessToken, refreshToken };
+  }
+
+  async validateRefreshToken(
+    id: string,
+    refreshToken: string | undefined,
+  ): Promise<Omit<Login, 'accessToken'>> {
+    try {
+      if (!refreshToken || !id) {
+        throw new UnauthorizedException('Token de atualização de acesso inválido!');
+      }
+
+      await this.verifyRefreshToken(refreshToken);
+
+      const user = await this.usersService.findOneById(id);
+      if (!user) {
+        throw new UnauthorizedException('Token de atualização de acesso inválido!');
+      }
+      if (!user.HashRefreshToken) {
+        throw new UnauthorizedException('Token de atualização de acesso inválido!');
+      }
+      const refreshtTokenMatches = await argon2.verify(user.HashRefreshToken, refreshToken);
+      if (!refreshtTokenMatches) {
+        throw new UnauthorizedException('Token de atualização de acesso inválido!');
+      }
+      return { refreshToken };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async validateJwt(payload: Payload): Promise<Payload> {
+    const { sub } = payload;
+
+    const user = await this.usersService.findOneById(sub);
+
+    if (!user) {
+      throw new UnauthorizedException('Token de atualização de acesso inválido!');
+    }
+    return { ...payload };
+  }
+
+  async signOutUser(userId: string): Promise<void> {
+    await this.usersService.updateUserRefreshToken(userId, null);
   }
 
   async validateUser(email: string, password: string): Promise<User> {
@@ -93,125 +226,6 @@ export class AuthService {
     }
 
     return user;
-  }
-
-  async loginUser(user: User): Promise<Login> {
-    const payload: Payload = {
-      sub: user.Id,
-      email: user.Email,
-      role: user.Role,
-      status: user.Status,
-    };
-
-    const { accessToken, refreshToken } = await this.generateToken(payload);
-    const hashRefreshToken = await argon2.hash(refreshToken);
-
-    const userUpdated = await this.usersService.update(user.Id, {
-      HashRefreshToken: hashRefreshToken,
-      LastLoginAt: new Date(),
-    });
-
-    if (!userUpdated) {
-      throw new UnauthorizedException('Não foi gerado token de acesso!');
-    }
-
-    return {
-      accessToken: accessToken,
-      refreshToken: refreshToken,
-    };
-  }
-
-  async updateRefreshTokenUser(id: string, refreshToken: string) {
-    return this.usersService.update(id, { HashRefreshToken: refreshToken });
-  }
-
-  async generateToken(payload: Payload): Promise<{ accessToken: string; refreshToken: string }> {
-    const [accessToken, refreshToken] = await Promise.all([
-      this.jwtService.signAsync(payload),
-      this.jwtService.signAsync(payload, {
-        secret: this.refresTokenConfig.secret,
-        ...this.refresTokenConfig.signOptions,
-      }),
-    ]);
-
-    return { accessToken, refreshToken };
-  }
-
-  async refreshToken({ refreshToken }: Omit<Login, 'accessToken'>): Promise<Login> {
-    const verifiedRefreshPayload: Payload = await this.verifyRefreshToken(refreshToken);
-
-    const newAccessTokenPayload: Omit<Payload, 'iat' | 'exp'> = {
-      sub: verifiedRefreshPayload.sub,
-      email: verifiedRefreshPayload.email,
-      role: verifiedRefreshPayload.role,
-      status: verifiedRefreshPayload.status,
-    };
-
-    const newAccessToken = await this.jwtService.signAsync(newAccessTokenPayload, {
-      secret: this.jwtConfiguration.secret,
-      ...this.jwtConfiguration.signOptions,
-    });
-    return {
-      accessToken: newAccessToken,
-      refreshToken: refreshToken,
-    };
-  }
-
-  async validateRefreshToken(
-    id: string,
-    refreshToken: string | undefined,
-  ): Promise<Omit<Login, 'accessToken'>> {
-    try {
-      if (!refreshToken || !id) {
-        throw new UnauthorizedException('Token de atualização de acesso inválido!');
-      }
-
-      await this.verifyRefreshToken(refreshToken);
-
-      const user = await this.usersService.findOneById(id);
-      if (!user) {
-        throw new UnauthorizedException('Token de atualização de acesso inválido!');
-      }
-      if (!user.HashRefreshToken) {
-        throw new UnauthorizedException('Token de atualização de acesso inválido!');
-      }
-      const refreshtTokenMatches = await argon2.verify(user.HashRefreshToken, refreshToken);
-      if (!refreshtTokenMatches) {
-        throw new UnauthorizedException('Token de atualização de acesso inválido!');
-      }
-      return { refreshToken };
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  async validateJwt(payload: Payload): Promise<Payload> {
-    const { sub } = payload;
-
-    const user = await this.usersService.findOneById(sub);
-
-    if (!user) {
-      throw new UnauthorizedException('Token de atualização de acesso inválido!');
-    }
-    return { ...payload };
-  }
-
-  async signOutUser(userId: string): Promise<void> {
-    await this.usersService.updateUserRefreshToken(userId, null);
-  }
-
-  async resetPassword(email: string): Promise<void> {
-    const user = await this.usersService.findOneByEmail(email);
-
-    if (!user) {
-      this.loggerService.error(
-        `Tentativa de recuperação de senha para e-mail não cadastrado: ${email}`,
-        { slack: true },
-      );
-      throw new BadRequestException('E-mail não cadastrado');
-    }
-    const newPassword = generateRandomPassword(12);
-    await this.usersService.updateUserPassword(user.Id, newPassword);
   }
 
   async verifyToken(token: string): Promise<Payload> {
