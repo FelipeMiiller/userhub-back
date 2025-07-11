@@ -11,6 +11,7 @@ import { UserCreatedEvent } from 'src/common/events/user-created.event';
 import { ResetPasswordEvent } from 'src/common/events/reset-password.event';
 import { MailService } from 'src/modules/mail/domain/mail.service';
 import { ConfigService } from '@nestjs/config';
+import { generateRandomPassword } from 'src/common/utils/password.utils';
 
 @Injectable()
 export class UsersService {
@@ -51,15 +52,7 @@ export class UsersService {
   @OnEvent(UserEvents.USER_CREATED, { async: true })
   async welcomeNewUser(event: UserCreatedEvent) {
     try {
-      await this.mailService.sendMail({
-        email: event.email,
-        subject: 'Bem-vindo ao UserHub',
-        template: 'welcome',
-        context: {
-          userFirstname: event.name,
-          siteUrl: this.configService.get('app.frontendUrl'),
-        },
-      });
+      this.mailService.sendWelcomeEmail(event.email, event.name);
       this.loggerService.info(`E-mail de boas-vindas enviado para: ${event.email}`);
     } catch (error) {
       this.loggerService.error(
@@ -81,35 +74,26 @@ export class UsersService {
     await this.usersRepository.update(id, { HashRefreshToken: refreshToken });
   }
 
-  async updateUserPassword(userId: string, newPassword: string): Promise<User | null> {
+
+
+  async resetPassword(userId: string): Promise<User | null> {
+    const newPassword = generateRandomPassword(12);
     const hashedPassword = await argon2.hash(newPassword);
     const user = await this.usersRepository.update(userId, {
       Password: hashedPassword,
       HashRefreshToken: null,
     });
-
     this.eventEmitter.emit(
       UserEvents.PASSWORD_RESET,
       new ResetPasswordEvent(user.Email, user.Name, newPassword),
     );
-
     return new User(user);
   }
 
   @OnEvent(UserEvents.PASSWORD_RESET, { async: true })
   async handleResetPasswordEvent(event: ResetPasswordEvent) {
     try {
-      await this.mailService.sendMail({
-        email: event.email,
-        subject: 'Nova Senha - UserHub',
-        template: 'reset-password',
-        context: {
-          userFirstname: event.name,
-          newPassword: event.newPassword,
-          userEmail: event.email,
-          siteUrl: this.configService.get('app.frontendUrl'),
-        },
-      });
+      this.mailService.sendResetPasswordEmail(event.email, event.name, event.newPassword);
 
       this.loggerService.info(`E-mail de recuperação de senha enviado para: ${event.email}`);
     } catch (error) {

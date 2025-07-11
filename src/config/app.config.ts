@@ -10,6 +10,7 @@ enum Environment {
 export type AppConfig = {
   port: number;
   environment: Environment;
+  frontendDomain: string;
   corsConfig: any;
 };
 
@@ -28,6 +29,10 @@ class EnvironmentVariablesValidator {
   @IsOptional()
   BACKEND_DOMAIN: string;
 
+  @IsUrl({ require_tld: false })
+  @IsOptional()
+  FRONTEND_DOMAIN: string;
+
   @IsString()
   @IsOptional()
   CORS_ORIGINS: string;
@@ -45,7 +50,7 @@ class EnvironmentVariablesValidator {
   CORS_ALLOW_NO_ORIGIN: boolean;
 }
 
-export default registerAs('app', () => {
+export default registerAs('app', (): AppConfig => {
   validateConfig(process.env, EnvironmentVariablesValidator);
 
   const originsEnv = process.env.CORS_ORIGINS || '';
@@ -124,8 +129,9 @@ export default registerAs('app', () => {
   };
 
   return {
-    port: process.env.PORT,
-    environment: process.env.NODE_ENV,
+    port: Number(process.env.PORT),
+    environment: process.env.NODE_ENV as Environment,
+    frontendDomain: process.env.FRONTEND_DOMAIN,
     corsConfig: {
       origin: validateOrigin,
       credentials: process.env.CORS_CREDENTIALS !== 'false',
