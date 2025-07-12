@@ -74,8 +74,6 @@ export class UsersService {
     await this.usersRepository.update(id, { HashRefreshToken: refreshToken });
   }
 
-
-
   async resetPassword(userId: string): Promise<User | null> {
     const newPassword = generateRandomPassword(12);
     const hashedPassword = await argon2.hash(newPassword);

@@ -13,4 +13,3 @@ export class RecoveryPasswordDto {
   @Transform(({ value }) => value.toLowerCase().trim())
   readonly Email: string;
 }
-

@@ -20,7 +20,7 @@ const config = {
     "!src/main.ts"
   ],
   coverageDirectory: "./coverage",
-  setupFiles: ['<rootDir>/jest.setup.ts'],
+ 
   
   // Configuração do ts-jest
   preset: 'ts-jest',

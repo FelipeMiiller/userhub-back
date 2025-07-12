@@ -1,9 +1,13 @@
 import * as request from 'supertest';
 import { INestApplication } from '@nestjs/common';
-import { UsersRepository } from 'src/modules/users/domain/repositories/users.repository.interface';
 import { setupTestApp } from 'test/setup';
-
 import { DataSource } from 'typeorm';
+
+jest.mock('nodemailer', () => ({
+  createTransport: jest.fn().mockReturnValue({
+    sendMail: jest.fn().mockReturnValue((mailoptions: any, callback: any) => {}),
+  }),
+}));
 
 describe('AuthController (e2e)', () => {
   let app: INestApplication;
