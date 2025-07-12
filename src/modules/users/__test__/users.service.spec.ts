@@ -1,10 +1,16 @@
 import { INestApplication } from '@nestjs/common';
-import { UsersService } from './domain/users.service';
-import { UserInput } from './http/dtos/create-users.dto';
-import { Roles, User } from './domain/models/users.models';
+import { UsersService } from '../domain/users.service';
+import { UserInput } from '../http/dtos/create-users.dto';
+import { Roles, User } from '../domain/models/users.models';
 import * as argon2 from 'argon2';
 import { setupTestApp } from 'test/setup';
 import { DataSource } from 'typeorm';
+
+jest.mock('nodemailer', () => ({
+  createTransport: jest.fn().mockReturnValue({
+    sendMail: jest.fn().mockReturnValue((mailoptions: any, callback: any) => {}),
+  }),
+}));
 
 describe('UsersService', () => {
   let app: INestApplication;

@@ -102,11 +102,8 @@ export class AuthController {
   @Public()
   @Post('change-password')
   @HttpCode(HttpStatus.ACCEPTED)
-  async ChangePassword(
-    @Body() changeDto: ChangePasswordDto,
-  ): Promise<{ message: string }> {
+  async ChangePassword(@Body() changeDto: ChangePasswordDto): Promise<{ message: string }> {
     try {
-  
       await this.authService.changePassword(changeDto);
       return {
         message: 'Senha alterada com sucesso.',

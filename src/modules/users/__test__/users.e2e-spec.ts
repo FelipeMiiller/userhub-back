@@ -5,6 +5,12 @@ import { UsersService } from 'src/modules/users/domain/users.service';
 import { setupTestApp } from 'test/setup';
 import { DataSource } from 'typeorm';
 
+jest.mock('nodemailer', () => ({
+  createTransport: jest.fn().mockReturnValue({
+    sendMail: jest.fn().mockReturnValue((mailoptions: any, callback: any) => {}),
+  }),
+}));
+
 describe('UsersController (e2e)', () => {
   let app: INestApplication;
   let dataSource: DataSource;
