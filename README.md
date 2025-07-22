@@ -4,9 +4,23 @@
 
 # UserHub Backend — API NestJS
 
+## 🧩 Sobre este template e a arquitetura modular
 
+Este projeto é um **template de backend modular** para sistemas Node.js/NestJS, pronto para ser usado como base para aplicações multi-domínio, escaláveis e plugáveis.
 
-API  construída com **NestJS + TypeScript**, autenticação JWT, controle de usuários, permissões, documentação Swagger, logging estruturado ( Slack), CI/CD Render, e arquitetura modular profissional.
+A arquitetura modular aplicada aqui segue princípios modernos:
+- **Separação por domínio**: Cada contexto de negócio (ex: identidade, notificações, etc) é isolado em seu próprio módulo/pacote, facilitando manutenção, testes e evolução independente.
+- **Apps são bootstraps**: A pasta `apps/` serve apenas para orquestrar módulos. Toda lógica de negócio fica em `packages/`.
+- **Baixo acoplamento**: Módulos se comunicam por interfaces públicas e eventos, nunca por dependências internas.
+- **Composabilidade**: É possível criar múltiplos apps combinando diferentes módulos, sem duplicação de lógica.
+- **Deploy evolutivo**: A estrutura permite extrair módulos para microserviços no futuro, sem reescrever código.
+- **Testabilidade e reuso**: Cada módulo é autocontido, com testes, config e dependências isoladas.
+
+> **Este repositório é recomendado para quem busca um ponto de partida profissional, escalável e alinhado com as melhores práticas de arquitetura modular em Node.js/NestJS.**
+
+---
+
+API  construída com **NestJS + TypeScript**, autenticação JWT, controle de usuários, permissões, documentação Swagger, logging estruturado (Slack), CI/CD Render, e arquitetura modular profissional.
 
 ## ⚡ Funcionalidades 
 
@@ -76,23 +90,8 @@ logger.error('Falha ao salvar usuário', { payload }, { slack: true, userId });
 - Deploy automatizado com Render (CI/CD)
 
 ### 8. Health Check
-O sistema oferece diferentes endpoints de health check:
-- **`/health/lb`** - Health check para load balancer (recomendado para Render)
-  - Tem restrições de IP além do local (127.0.0.1 e ::1)
-  - Tem throttling para IPs externos
-  - Retorna um status básico rápido
-- **`/health/internal`** - Health check interno (apenas rede interna)
-  - Apenas IPs da rede interna (192.168.0.0/16, 10.0.0.0/8)
-  - Sem throttling
-- **`/health/detailed`** - Health check detalhado
-  - Retorna informações completas sobre o sistema
-  - Inclui status de serviços dependentes
-  - Com throttling para IPs externos
+O sistema oferece endpoint de health check:
 
-A configuração do Render utiliza o endpoint `/health/lb` com:
-- Intervalo: 30 segundos
-- Timeout: 10 segundos
-- Sem restrições de IP além do local
 
 ## 🔐 Segurança
 - JWT, roles, validação, tratamento de erros
@@ -120,31 +119,56 @@ const newId = ulid(); // Exemplo: 01HZ7YF8T1X3J6Y2YB4K2K3QZC
 As migrations e entidades já estão preparadas para trabalhar com ULID como chave primária.
 
 
-## 📁 Estrutura de Pastas
+## 📁 Estrutura de Pastas e Conceito Modular
+
+A arquitetura é dividida em **apps** (orquestradores) e **packages** (domínios e infraestrutura):
 
 ```
-src/
-├── modules/        # Módulos de domínio (auth, users, etc.)
-│   ├── auth/       # Autenticação e autorização
-│   └── users/      # Gerenciamento de usuários
-├── common/         # Utilitários, decorators, filtros globais
-│   ├── decorators/ # Decorators personalizados
-│   ├── filters/    # Filtros de exceção
-│   ├── guards/     # Guards de autenticação
-│   ├── interceptors/ # Interceptors
-│   └── shared/     # Código compartilhado
-├── config/         # Configurações centralizadas
-├── migrations/     # Migrations do banco de dados
-└── main.ts         # Bootstrap da aplicação
-
-test/               # Testes unitários e e2e
+├── apps/                  # Pontos de entrada (APIs, workers, gateways)
+│   └── api/               # Exemplo: app principal, apenas importa módulos de packages
+│
+├── packages/              # Domínios e infraestrutura (plugáveis, reutilizáveis)
+│   ├── identity/          # Domínio de identidade (autenticação, usuários, roles)
+│   │   ├── core/          # Regras de negócio puras do domínio
+│   │   ├── http/          # Controllers, DTOs, validadores e rotas
+│   │   ├── persistence/   # Entidades, repositórios, migrations, data source
+│   │   └── config/        # Configuração isolada do domínio
+│   ├── mail/              # Domínio de e-mail (serviço, templates, envio)
+│   └── ...                # Outros domínios (ex: billing, notificações, etc.)
+│
+├── shared/                # Infraestrutura e utilitários compartilhados
+│   ├── modules/           # Módulos de persistência, cache, fila, etc.
+│   └── utils/             # Funções utilitárias genéricas
+│
+├── config/                # Configurações globais (env, redis, database)
+├── migrations/            # Migrations globais (se necessário)
+├── main.ts                # Bootstrap do app (geralmente em apps/api)
+└── test/                  # Testes unitários e e2e
 ```
+
+### 🧩 **Como funciona o conceito modular?**
+- Cada **package** é um "bloco" autocontido: regras, entidades, controllers, config e testes próprios.
+- **Apps** apenas orquestram quais módulos/packages serão usados — não possuem lógica de domínio.
+- É possível criar novos apps, combinando diferentes packages (ex: API pública, worker de fila, microserviço).
+- Packages podem ser extraídos para microserviços no futuro sem reescrita.
+- **Plugabilidade:** adicionar/remover domínios é simples, basta importar/remover o package no app.
+- **Reuso:** packages podem ser publicados e reutilizados em outros projetos.
+
+> **Resumo:**
+> - **Isolamento:** cada domínio evolui independente.
+> - **Escalabilidade:** fácil crescer para múltiplos apps/microserviços.
+> - **Testabilidade:** cada package pode ser testado isoladamente.
+> - **Organização:** código limpo, desacoplado e sustentável.
 
 ## ⚙️ Scripts Disponíveis
 
 ```bash
 # Iniciar em modo desenvolvimento
 yarn start:dev
+
+yarn start:dev notification
+
+yarn start:dev monolith
 
 # Build de produção
 yarn build
@@ -171,4 +195,3 @@ yarn test:cov
  yarn email:dev
 
 ```
-

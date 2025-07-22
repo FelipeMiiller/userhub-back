@@ -8,10 +8,7 @@ const config = {
   transform: {
     '^.+\\.(t|j)s$': 'ts-jest'
   },
-  moduleNameMapper: {
-    '^src/(.*)$': '<rootDir>/src/$1',
-    '^test/(.*)$': '<rootDir>/test/$1'
-  },
+ 
   moduleDirectories: ['node_modules', '<rootDir>'],
   collectCoverageFrom: [
     "src/**/*.(t|j)s",
@@ -20,7 +17,13 @@ const config = {
     "!src/main.ts"
   ],
   coverageDirectory: "./coverage",
- 
+  moduleNameMapper: {
+    '^shared/(.*)$': '<rootDir>/shared/$1',
+    '^identity/(.*)$': '<rootDir>/packages/identity/$1',
+    '^notification/(.*)$': '<rootDir>/packages/notification/$1',
+    '^src/(.*)$': '<rootDir>/src/$1',
+    '^test/(.*)$': '<rootDir>/test/$1'
+  },
   
   // Configuração do ts-jest
   preset: 'ts-jest',
@@ -38,14 +41,16 @@ const config = {
   projects: [
     // Unit tests configuration
     {
-      displayName: 'unit',
-      testMatch: ['<rootDir>/src/**/*.spec.ts'],
+      displayName: 'identity',
+      testMatch: ['<rootDir>/**/*.e2e-spec.ts','<rootDir>/**/*.spec.ts'],
       // Herdar configurações do projeto pai
       moduleFileExtensions: ['js', 'json', 'ts'],
       transform: {
         '^.+\\.(t|j)s$': 'ts-jest'
       },
       moduleNameMapper: {
+        '^shared/(.*)$': '<rootDir>/shared/$1',
+        '^identity/(.*)$': '<rootDir>/packages/identity/$1',
         '^src/(.*)$': '<rootDir>/src/$1',
         '^test/(.*)$': '<rootDir>/test/$1'
       },
@@ -54,14 +59,16 @@ const config = {
     },
     // E2E tests configuration
     {
-      displayName: 'e2e',
-      testMatch: ['<rootDir>/src/**/*.e2e-spec.ts'],
+      displayName: 'notification',
+      testMatch: ['<rootDir>/**/*.e2e-spec.ts','<rootDir>/**/*.spec.ts'],
       // Herdar configurações do projeto pai
       moduleFileExtensions: ['js', 'json', 'ts'],
       transform: {
         '^.+\\.(t|j)s$': 'ts-jest'
       },
       moduleNameMapper: {
+        '^shared/(.*)$': '<rootDir>/shared/$1',
+        '^notification/(.*)$': '<rootDir>/packages/notification/$1',
         '^src/(.*)$': '<rootDir>/src/$1',
         '^test/(.*)$': '<rootDir>/test/$1'
       },

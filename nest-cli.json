@@ -1,8 +1,33 @@
 {
   "$schema": "https://json.schemastore.org/nest-cli",
   "collection": "@nestjs/schematics",
-  "sourceRoot": "src",
+  "monorepo": true,
+  "sourceRoot": ".",
+  "root": ".",
   "compilerOptions": {
-    "deleteOutDir": true
+    "deleteOutDir": false,
+    "webpack": false
+  },
+ 
+  "projects": {
+    "monolith": {
+      "type": "application",
+      "root": "apps/monolith",
+      "entryFile": "main",
+      "sourceRoot": "apps/monolith",
+      "compilerOptions": {
+        "tsConfigPath": "apps/monolith/tsconfig.app.json"
+      }
+    },
+    "notification": {
+      "type": "application",
+      "root": "apps/notification",
+      "entryFile": "main",
+      "sourceRoot": "apps/notification",
+      "compilerOptions": {
+        "tsConfigPath": "apps/notification/tsconfig.app.json"
+      
+      }
+    }
   }
 }

@@ -11,6 +11,20 @@
     "sourceMap": true,
     "outDir": "./dist",
     "baseUrl": "./",
+    "paths": {
+      "billing/*": [
+        "packagess/billing/*"
+      ],
+      "identity/*": [
+        "packagess/identity/*"
+      ],
+      "notification/*": [
+        "packagess/notification/*"
+      ],
+      "shared/*": [
+        "./shared/*"
+      ]
+    },
     "incremental": true,
     "skipLibCheck": true,
     "strictNullChecks": false,
@@ -19,6 +33,10 @@
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false
   },
-  "include": ["**/*.ts"],
-  "exclude": ["node_modules", "**/*.js"]
+  "include":
+   [ "**/*.ts"],
+  "exclude": [
+    "node_modules",
+    "**/*.js"
+  ]
 }
