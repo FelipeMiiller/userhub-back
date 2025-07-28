@@ -1,0 +1,10 @@
+POST http://localhost:3005/auth/signup
+Content-Type: application/json
+
+{
+    "Email": "johndoe@gmail.com",
+    "Password": "12356@sFsd@",
+    "FirstName": "john",
+    "LastName": "doe"
+}
+    

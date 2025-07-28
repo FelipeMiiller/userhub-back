@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bem-vindo ao UserHub</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+      line-height: 1.6;
+      color: #333;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f4;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #ffffff;
+      border-radius: 5px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .title {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 20px;
+      color: #0a0a0a;
+    }
+    .paragraph {
+      margin: 15px 0;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+    .button-container {
+      text-align: center;
+      margin: 25px 0;
+    }
+    .button {
+      display: inline-block;
+      padding: 12px 24px;
+      background-color: #0a0a0a;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 3px;
+      font-weight: bold;
+    }
+    .footer {
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #eee;
+      font-size: 14px;
+      color: #666;
+      text-align: center;
+    }
+    .hr {
+      border: none;
+      border-top: 1px solid #eee;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 class="title">Bem-vindo ao UserHub, {{userFirstname}}!</h1>
+    
+    <p class="paragraph">
+      Estamos muito felizes por você ter se juntado ao UserHub! Agora você faz parte da nossa comunidade.
+    </p>
+
+    <div class="button-container">
+      <a href="{{frontendDomain}}" class="button">Acessar Minha Conta</a>
+    </div>
+
+    <p class="paragraph">
+      Com o UserHub, você pode gerenciar seus dados de forma simples e segura. Estamos aqui para ajudar em tudo o que você precisar.
+    </p>
+
+    <p class="paragraph">
+      Se precisar de ajuda, não hesite em entrar em contato com nosso suporte.
+    </p>
+
+    <div class="hr"></div>
+
+    <p class="paragraph">
+      Atenciosamente,<br>
+      Equipe UserHub
+    </p>
+
+    <div class="footer">
+      UserHub - Todos os direitos reservados
+    </div>
+  </div>
+</body>
+</html>

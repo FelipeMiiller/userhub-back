@@ -14,7 +14,7 @@ services:
       - '5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init-scripts:/docker-entrypoint-initdb.d
+      - ./init/postgres-definitions.sh:/docker-entrypoint-initdb.d/postgres-definitions.sh
 
     networks:
       - app-network
@@ -55,6 +55,35 @@ services:
       timeout: 5s
       retries: 5
 
+  rabbitmq:
+    container_name: rabbitmq
+    image: rabbitmq:3.13-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+      RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VHOST:-/}
+      RABBITMQ_DEFAULT_HOST: ${RABBITMQ_HOST:-localhost}
+      RABBITMQ_DEFAULT_PORT: ${RABBITMQ_PORT:-5672}
+      RABBITMQ_DEFAULT_HEARTBEAT: ${RABBITMQ_HEARTBEAT:-60}
+      RABBITMQ_DEFAULT_PREFETCH_COUNT: ${RABBITMQ_PREFETCH_COUNT:-10}
+      RABBITMQ_DEFAULT_PERSISTENT: ${RABBITMQ_PERSISTENT:-true}
+
+
+    ports:
+      - '5672:5672'   # AMQP port
+      - '15672:15672' # Management UI port
+    volumes:
+
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - app-network
+    healthcheck:
+      test: ['CMD', 'rabbitmq-diagnostics', 'ping']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
 networks:
   app-network:
     driver: bridge
@@ -62,5 +91,7 @@ volumes:
   postgres_data:
     driver: local
   mongodb_data:
+    driver: local
+  rabbitmq_data:
     driver: local
 
