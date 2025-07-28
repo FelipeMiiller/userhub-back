@@ -12,14 +12,11 @@
     "outDir": "./dist",
     "baseUrl": "./",
     "paths": {
-      "billing/*": [
-        "packagess/billing/*"
-      ],
       "identity/*": [
-        "packagess/identity/*"
+        "packages/identity/*"
       ],
       "notification/*": [
-        "packagess/notification/*"
+        "packages/notification/*"
       ],
       "shared/*": [
         "./shared/*"

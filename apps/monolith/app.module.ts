@@ -7,16 +7,16 @@ import { CacheModule, CacheModuleOptions } from '@nestjs/cache-manager';
 import { LoggingInterceptor } from 'shared/core/interceptors/logging.interceptor';
 import { LastActivityInterceptor } from 'shared/core/interceptors/last-activity.interceptor';
 import { TransformInterceptor } from 'shared/core/interceptors/transform.interceptor';
-import { AllExceptionsFilter } from 'shared/core/filters/exception.filter';
 import { pathEnv } from 'shared/lib/utils/pathEnv';
 import { MailModule } from 'packages/notification/mail/mail.module';
 import { IdentityModule } from 'packages/identity/identity.module';
-import { LoggerService } from 'shared/modules/loggers/domain/logger.service';
+import { LoggerService } from 'shared/modules/loggers';
 import { HealthController } from 'shared/core/health/http/health-check.controller';
 import { LoggerModule } from 'shared/modules/loggers/logger.module';
 import appConfig from 'shared/config/app.config';
 import monolithConfig from './config/monolith.config';
 import redisConfig from './config/redis.config';
+import { ServerExceptionFilter } from 'shared/core/filters/service-exception.filter';
 
 @Module({
   imports: [
@@ -53,18 +53,14 @@ import redisConfig from './config/redis.config';
     IdentityModule,
   ],
   providers: [
-    ...(process.env.NODE_ENV !== 'test'
-      ? [
-          {
-            provide: APP_INTERCEPTOR,
-            useClass: LoggingInterceptor,
-          },
-          {
-            provide: APP_INTERCEPTOR,
-            useClass: LastActivityInterceptor,
-          },
-        ]
-      : []),
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: LoggingInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: LastActivityInterceptor,
+    },
     {
       provide: APP_INTERCEPTOR,
       useFactory: (reflector: Reflector) =>
@@ -89,9 +85,14 @@ import redisConfig from './config/redis.config';
         }),
     },
     {
+      provide: 'MODULE_NAME',
+      useValue: 'Monolith',
+    },
+    {
       provide: APP_FILTER,
-      useFactory: (loggerService: LoggerService) => new AllExceptionsFilter(loggerService),
-      inject: [LoggerService],
+      useFactory: (loggerService: LoggerService, moduleName: string) =>
+        new ServerExceptionFilter(moduleName, loggerService),
+      inject: [LoggerService, 'MODULE_NAME'],
     },
   ],
   controllers: [HealthController],

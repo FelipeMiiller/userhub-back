@@ -66,14 +66,10 @@ export abstract class DefaultTypeOrmRepository<T extends DefaultEntity<T>> {
             description: 'Verifique as restrições dos campos.',
           });
         default:
-          throw new DatabaseException(
-            'Ocorreu um erro inesperado no banco de dados.',
-            pgError.code,
-            {
-              cause: pgError,
-              description: `Código de erro PostgreSQL: ${pgError.code}`,
-            },
-          );
+          throw new DatabaseException('Ocorreu um erro inesperado no banco de dados.', {
+            cause: pgError,
+            description: `Código de erro PostgreSQL: ${pgError.code}`,
+          });
       }
     }
     throw new DatabaseException('Ocorreu um erro desconhecido no banco de dados.');
@@ -111,14 +107,22 @@ export abstract class DefaultTypeOrmRepository<T extends DefaultEntity<T>> {
     }
   }
   async findOneById(Id: string, relations?: string[]): Promise<T | null> {
-    return this.repository.findOne({
-      where: { Id } as FindOptionsWhere<T>,
-      relations,
-    });
+    try {
+      return await this.repository.findOne({
+        where: { Id } as FindOptionsWhere<T>,
+        relations,
+      });
+    } catch (error) {
+      this.handlePostgresError(error);
+    }
   }
 
   async find(options: FindOneOptions<T>): Promise<T[]> {
-    return this.repository.find(options);
+    try {
+      return await this.repository.find(options);
+    } catch (error) {
+      this.handlePostgresError(error);
+    }
   }
 
   async findMany(Options?: FindManyOptions<T>): Promise<T[]> {
@@ -129,15 +133,23 @@ export abstract class DefaultTypeOrmRepository<T extends DefaultEntity<T>> {
     }
   }
   async exists(Id: string): Promise<boolean> {
-    return this.repository.exists({
-      where: { Id } as FindOptionsWhere<T>,
-    });
+    try {
+      return await this.repository.exists({
+        where: { Id } as FindOptionsWhere<T>,
+      });
+    } catch (error) {
+      this.handlePostgresError(error);
+    }
   }
 
   async existsBy(properties: FindOptionsWhere<T>): Promise<boolean> {
-    return this.repository.exists({
-      where: properties,
-    });
+    try {
+      return await this.repository.exists({
+        where: properties,
+      });
+    } catch (error) {
+      this.handlePostgresError(error);
+    }
   }
 
   async delete(

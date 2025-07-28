@@ -1,11 +1,10 @@
 import { INestApplication } from '@nestjs/common';
-import { Roles, User } from '../core/models/users.models';
 import * as argon2 from 'argon2';
 import { createNestApp } from 'test/setup';
 import { DataSource } from 'typeorm';
-import { UsersService } from '../core/services/users.service';
-
 import { IdentityModule } from 'packages/identity/identity.module';
+import { UsersService } from 'identity/account/core/services/users.service';
+import { User } from 'identity/shared/persistence/entities/users.entities';
 
 jest.mock('nodemailer', () => ({
   createTransport: jest.fn().mockReturnValue({
@@ -50,7 +49,7 @@ describe('UsersService', () => {
 
   describe('create', () => {
     it('deve criar um usuário com papel padrão se não fornecido', async () => {
-      const input: UserInput = {
+      const input: User = {
         Name: 'New User',
         Email: `new-${Date.now()}@example.com`,
         Password: 'password123',

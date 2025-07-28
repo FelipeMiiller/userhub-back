@@ -8,7 +8,7 @@ import {
   NotificationExchange,
   NotificationQueue,
 } from 'shared/modules/integration/notifications/notification.types';
-import { LoggerService } from 'shared/modules/loggers/domain/logger.service';
+import { LoggerService } from 'shared/modules/loggers';
 
 @Injectable()
 export class EmailProducer {

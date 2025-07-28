@@ -1,16 +1,12 @@
 import * as request from 'supertest';
 import { INestApplication } from '@nestjs/common';
-
 import { DataSource } from 'typeorm';
-import { UsersService } from 'packages/identity/core/services/users.service';
-
 import { IdentityModule } from 'packages/identity/identity.module';
-
 import { ConfigModule } from '@nestjs/config';
 import { pathEnv } from 'shared/lib/utils/pathEnv';
 import appConfig from 'shared/config/app.config';
 import { createNestApp } from 'test/setup';
-import { Roles } from '../core/enum/role.enum';
+import { Roles } from '../../../shared/modules/authorization/core/enum/role.enum';
 
 jest.mock('nodemailer', () => ({
   createTransport: jest.fn().mockReturnValue({
@@ -23,7 +19,6 @@ describe('UsersController (e2e)', () => {
   let dataSource: DataSource;
   let tokenAdmin: string;
   let usuarioId: string;
-  let service: UsersService;
 
   const emailAdmin = `adminE2E_${Date.now()}@exemplo.com`;
   const senhaAdmin = 'AdminE2E@123';
@@ -39,7 +34,6 @@ describe('UsersController (e2e)', () => {
     ]);
     app = testSetup.app;
     dataSource = testSetup.dataSource;
-    service = app.get(UsersService);
     await dataSource.query('TRUNCATE TABLE "Users"');
   });
 

@@ -6,8 +6,8 @@ import * as fs from 'fs';
 import Handlebars from 'handlebars';
 import { MailTemplates } from './constants/mail-templates.enum';
 import { MailConfig } from '../config';
-import { LoggerService } from 'shared/modules/loggers/domain/logger.service';
 import { MailDomainException } from './excepition/mail-domain.exception';
+import { LoggerService } from 'shared/modules/loggers';
 
 interface SendMailConfiguration {
   email: string;

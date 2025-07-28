@@ -9,7 +9,7 @@ import {
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { Observable } from 'rxjs';
-import { LoggerService } from '../../modules/loggers/domain/logger.service';
+import { LoggerService } from '../../modules/loggers/core/logger.service';
 
 @Injectable()
 export class LastActivityInterceptor implements NestInterceptor {

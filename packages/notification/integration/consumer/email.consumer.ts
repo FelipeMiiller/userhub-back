@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { Nack, RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
-
 import {
   EmailNotificationPayload,
   EmailTemplates,
@@ -9,7 +8,7 @@ import {
   NotificationExchange,
   NotificationQueue,
 } from 'shared/modules/integration/notifications/notification.types';
-import { LoggerService } from 'shared/modules/loggers/domain/logger.service';
+import { LoggerService } from 'shared/modules/loggers';
 import { MailService } from 'packages/notification/mail/core/mail.service';
 
 @Injectable()

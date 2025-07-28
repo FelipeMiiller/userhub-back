@@ -4,19 +4,46 @@
 
 # UserHub Backend — API NestJS
 
-## 🧩 Sobre este template e a arquitetura modular
+## 🧩 Arquitetura Modular — Visão Geral
 
-Este projeto é um **template de backend modular** para sistemas Node.js/NestJS, pronto para ser usado como base para aplicações multi-domínio, escaláveis e plugáveis.
+Este projeto adota uma **arquitetura modular** baseada em princípios explícitos de boundaries, isolamento de domínios e evolução incremental, voltados para escalabilidade, facilidade de manutenção e crescimento sustentável.
 
-A arquitetura modular aplicada aqui segue princípios modernos:
-- **Separação por domínio**: Cada contexto de negócio (ex: identidade, notificações, etc) é isolado em seu próprio módulo/pacote, facilitando manutenção, testes e evolução independente.
-- **Apps são bootstraps**: A pasta `apps/` serve apenas para orquestrar módulos. Toda lógica de negócio fica em `packages/`.
-- **Baixo acoplamento**: Módulos se comunicam por interfaces públicas e eventos, nunca por dependências internas.
-- **Composabilidade**: É possível criar múltiplos apps combinando diferentes módulos, sem duplicação de lógica.
-- **Deploy evolutivo**: A estrutura permite extrair módulos para microserviços no futuro, sem reescrever código.
-- **Testabilidade e reuso**: Cada módulo é autocontido, com testes, config e dependências isoladas.
+### Estrutura Modular
+- **Apps (`/apps`)**: Pontos de entrada (bootstraps) que apenas orquestram módulos, sem conter lógica de negócio. Exemplos: `monolith`, `notification`.
+- **Packages (`/packages`)**: Cada domínio de negócio (ex: identidade, notificações) é isolado em seu próprio pacote, contendo regras, entidades, controllers, config e testes.
+- **Shared (`/shared`)**: Módulos utilitários e infraestrutura compartilhada (ex: autenticação, cache, fila, loggers).
 
-> **Este repositório é recomendado para quem busca um ponto de partida profissional, escalável e alinhado com as melhores práticas de arquitetura modular em Node.js/NestJS.**
+### Princípios Aplicados
+- **Boundaries bem definidos**: Cada módulo expõe apenas suas interfaces públicas (ex: via `index.ts`), nunca entidades internas ou implementações privadas.
+- **Independência**: Módulos podem ser desenvolvidos, testados e implantados de forma isolada. Comunicação entre módulos acontece por contratos bem definidos (interfaces, DTOs, eventos).
+- **Composabilidade**: Apps podem combinar diferentes módulos/packages facilmente. Exemplo: o app `monolith` importa `ContentModule`, `IdentityModule` e outros conforme necessário.
+- **Plugabilidade**: Adicionar ou remover domínios é simples — basta importar/remover o package no app correspondente.
+- **Testabilidade**: Cada módulo possui seus próprios testes e pode ser testado isoladamente.
+
+
+#### Exemplo de independência
+- O módulo `authorization` em `shared/modules/authorization` exporta apenas seu módulo, serviços, guards, enums e decorators públicos, mantendo entidades e lógica interna encapsuladas.
+- Cada módulo pode ser testado e configurado sem dependências diretas de outros domínios.
+
+#### Exemplo de plugabilidade
+- Para adicionar um novo domínio, basta criar um novo package e importar no app desejado.
+- Para evoluir para microserviços, extraia o package para um serviço dedicado sem reescrita de lógica.
+
+### Vantagens
+- **Isolamento**: Cada domínio evolui independente.
+- **Escalabilidade**: Fácil crescer para múltiplos apps/microserviços.
+- **Organização**: Código limpo, desacoplado e sustentável.
+- **Reuso**: Packages podem ser publicados e reutilizados em outros projetos.
+
+---
+
+### 🆕 Mudanças Recentes na Arquitetura
+- Refatoração dos boundaries dos módulos para garantir que apenas facades e interfaces públicas sejam exportadas.
+- Padronização dos `index.ts` de packages/shared para evitar exposição de entidades e implementações internas.
+- Validação de compliance com o guideline modular: apps apenas orquestram, packages concentram a lógica, e shared fornece infraestrutura reutilizável.
+- Revisão dos providers e DI para garantir baixo acoplamento e facilitar testes.
+- Documentação aprimorada dos contratos de comunicação entre módulos.
+
 
 ---
 

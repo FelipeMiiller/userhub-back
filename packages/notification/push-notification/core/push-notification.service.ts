@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpClient } from 'shared/modules/http-client/client/http.client';
 import { NtfyConfig } from '../config';
-import { LoggerService } from 'shared/modules/loggers/domain/logger.service';
+import { LoggerService } from 'shared/modules/loggers';
 
 export interface NtfyOptions {
   topic?: string;

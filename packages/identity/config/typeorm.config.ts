@@ -2,8 +2,8 @@ import { registerAs } from '@nestjs/config';
 import { DataSourceOptions } from 'typeorm';
 import { IsBoolean, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 import validateConfig from 'shared/lib/utils/validate-config';
-import { UserEntity } from 'packages/identity/persistence/entities/users.entities';
-import { CreateUsersTable1723809312769 } from '../persistence/migrations/1723809312769-CreateUsersTable';
+import { User } from 'packages/identity/shared/persistence/entities/users.entities';
+import { CreateUsersTable1723809312769 } from '../shared/persistence/migrations/1723809312769-CreateUsersTable';
 
 class EnvironmentVariablesValidator {
   @IsString()
@@ -41,7 +41,7 @@ export default registerAs('typeorm', (): TypeormConfig => {
     password: process.env.TYPEORM_PASSWORD,
     database: process.env.TYPEORM_DATABASE,
     port: parseInt(process.env.TYPEORM_PORT, 10) || 5432,
-    entities: [UserEntity],
+    entities: [User],
     migrations: [CreateUsersTable1723809312769],
     migrationsTableName: 'identity_migrations',
     synchronize: false,

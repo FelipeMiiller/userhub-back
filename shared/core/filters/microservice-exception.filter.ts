@@ -1,154 +1,112 @@
+//https://docs.nestjs.com/microservices/exception-filters
+
 import {
   ArgumentsHost,
   Catch,
-  ExceptionFilter,
   HttpException,
   HttpStatus,
-  Logger,
+  RpcExceptionFilter,
 } from '@nestjs/common';
 import { RpcException } from '@nestjs/microservices';
 import { Observable, throwError } from 'rxjs';
+import { LoggerService } from 'shared/modules/loggers';
+import { DomainException } from '../exeption/domain.exception';
 
 // Interface para padronizar a resposta de erro
-interface ErrorResponse {
-  statusCode: number;
-  message: string;
-  error: string;
+type ErrorResponse = {
   timestamp: string;
+  message: string | object;
+  context: string;
+};
+
+type ErroLog = {
+  statusCode?: number;
+  message: string;
+  details?: Record<string, string>;
+  pattern?: string;
+  stackTrace?: string;
   path?: string;
-  stack?: string;
-}
+  httpMethod?: string;
+  module?: string;
+};
 
 @Catch()
-export class MicroserviceExceptionFilter implements ExceptionFilter {
-  private readonly logger = new Logger(MicroserviceExceptionFilter.name);
+export class MicroserviceExceptionFilter implements RpcExceptionFilter<RpcException> {
+  constructor(
+    public readonly module: string,
+    private readonly loggerService: LoggerService,
+  ) {
+    this.loggerService.contextName = 'MicroserviceExceptionFilter';
+  }
 
-  catch(exception: any, host: ArgumentsHost): Observable<any> {
+  catch(exception: unknown, host: ArgumentsHost): Observable<any> {
     const ctx = host.switchToRpc();
-    const data = ctx.getData();
+
     const pattern = ctx.getContext();
 
-    // Log do erro para debugging
-    this.logger.error(`Microservice Exception: ${exception.message}`, {
-      pattern: pattern,
-      data: data,
-      stack: exception.stack,
-      exception: exception.constructor.name,
-    });
-
-    let errorResponse: ErrorResponse;
-
-    if (exception instanceof RpcException) {
-      // Erro específico de RPC
-      errorResponse = this.handleRpcException(exception, pattern);
-    } else if (exception instanceof HttpException) {
-      // Conversão de HttpException para RpcException
-      errorResponse = this.handleHttpException(exception, pattern);
-    } else if (exception.name === 'ValidationError' || exception.name === 'ValidatorError') {
-      // Erros de validação
-      errorResponse = this.handleValidationError(exception, pattern);
-    } else if (exception.name === 'MongoError' || exception.name === 'CastError') {
-      // Erros de banco de dados MongoDB
-      errorResponse = this.handleDatabaseError(exception, pattern);
-    } else if (exception.code === 'ECONNREFUSED' || exception.code === 'ENOTFOUND') {
-      // Erros de conexão
-      errorResponse = this.handleConnectionError(exception, pattern);
-    } else {
-      // Erro genérico/não tratado
-      errorResponse = this.handleGenericError(exception, pattern);
-    }
-
-    // Retorna um Observable com o erro formatado
-    return throwError(() => new RpcException(errorResponse));
-  }
-
-  private handleRpcException(exception: RpcException, pattern: any): ErrorResponse {
-    const error = exception.getError() as any;
-
-    return {
-      statusCode: error.statusCode || HttpStatus.INTERNAL_SERVER_ERROR,
-      message: error.message || 'Microservice RPC error',
-      error: error.error || 'RpcException',
-      timestamp: new Date().toISOString(),
-      path: pattern?.cmd || pattern,
-    };
-  }
-
-  private handleHttpException(exception: HttpException, pattern: any): ErrorResponse {
-    const status = exception.getStatus();
-    const response = exception.getResponse() as any;
-
-    return {
-      statusCode: status,
-      message: response.message || exception.message,
-      error: response.error || exception.name,
-      timestamp: new Date().toISOString(),
-      path: pattern?.cmd || pattern,
-    };
-  }
-
-  private handleValidationError(exception: any, pattern: any): ErrorResponse {
-    const message = this.extractValidationMessages(exception);
-
-    return {
-      statusCode: HttpStatus.BAD_REQUEST,
-      message: message,
-      error: 'ValidationError',
-      timestamp: new Date().toISOString(),
-      path: pattern?.cmd || pattern,
-    };
-  }
-
-  private handleDatabaseError(exception: any, pattern: any): ErrorResponse {
-    let message = 'Database operation failed';
     let statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
+    let message: string = 'Internal Server Error';
+    let details: Record<string, string> = {};
+    let context: string | undefined = 'Unknown';
+    let stackTrace: string | undefined = (exception as any)?.stack;
 
-    if (exception.code === 11000) {
-      // Duplicate key error
-      message = 'Duplicate entry found';
-      statusCode = HttpStatus.CONFLICT;
-    } else if (exception.name === 'CastError') {
-      message = 'Invalid data format';
-      statusCode = HttpStatus.BAD_REQUEST;
+    const errorResponse: ErrorResponse = {
+      timestamp: new Date().toISOString(),
+      message,
+      context,
+    };
+
+    if (exception instanceof HttpException) {
+      statusCode = exception.getStatus();
+      const responseBody = exception.getResponse();
+
+      if (typeof responseBody === 'string') {
+        message = responseBody;
+        errorResponse.message = responseBody;
+      } else if (typeof responseBody === 'object' && responseBody !== null) {
+        // NestJS ValidationPipe errors often return an object with a 'message' array
+        message = (responseBody as any).message || 'Http Exception';
+        details = (responseBody as any).details;
+        context = exception.constructor.name;
+        errorResponse.message = (responseBody as any).message || 'Http Exception';
+      }
+    }
+    if (exception instanceof DomainException) {
+      // Tratamento para erros de domínio
+      message = exception.message;
+      context = exception.context;
+      stackTrace = exception.stack;
+      details = exception.details;
+
+      errorResponse.message = message;
+    } else if (exception instanceof Error) {
+      // Tratamento para erros genéricos (e.g., TypeError, ReferenceError)
+      message = exception.message;
+      context = 'InstanceError';
+      stackTrace = exception.stack;
+
+      errorResponse.message = message;
+    } else {
+      // Fallback para qualquer outro tipo de exceção
+      message = (exception as any).message || 'Error Unhandled';
+      stackTrace = (exception as any).stack || String(exception);
+      context = 'Error Unhandled';
+      errorResponse.message = message;
     }
 
-    return {
-      statusCode: statusCode,
-      message: message,
-      error: 'DatabaseError',
-      timestamp: new Date().toISOString(),
-      path: pattern?.cmd || pattern,
-    };
-  }
+    this.loggerService.error(
+      `[${statusCode}] [Microservice-${this.module}] context=${context} - ${message}`,
+      {
+        statusCode,
+        context,
+        message,
+        module: this.module,
+        details,
+        pattern,
+        stackTrace,
+      },
+    );
 
-  private handleConnectionError(exception: any, pattern: any): ErrorResponse {
-    return {
-      statusCode: HttpStatus.SERVICE_UNAVAILABLE,
-      message: 'External service unavailable',
-      error: 'ConnectionError',
-      timestamp: new Date().toISOString(),
-      path: pattern?.cmd || pattern,
-    };
-  }
-
-  private handleGenericError(exception: any, pattern: any): ErrorResponse {
-    return {
-      statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-      message: exception.message || 'Internal server error',
-      error: exception.name || 'InternalError',
-      timestamp: new Date().toISOString(),
-      path: pattern?.cmd || pattern,
-      ...(process.env.NODE_ENV === 'development' && { stack: exception.stack }),
-    };
-  }
-
-  private extractValidationMessages(exception: any): string {
-    if (exception.errors) {
-      const messages = Object.values(exception.errors)
-        .map((err: any) => err.message)
-        .join(', ');
-      return messages;
-    }
-    return exception.message || 'Validation failed';
+    return throwError(() => new RpcException(errorResponse));
   }
 }

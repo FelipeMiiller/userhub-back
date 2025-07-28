@@ -3,7 +3,7 @@ import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { Reflector } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
-import { LoggerService } from 'shared/modules/loggers/domain/logger.service';
+import { LoggerService } from 'shared/modules/loggers/core/logger.service';
 
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {

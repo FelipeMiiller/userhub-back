@@ -1,10 +1,10 @@
 import { ConfigService, ConfigType } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { LoggerService } from 'shared/modules/loggers/domain/logger.service';
 import { AppModule } from './app.module';
 import appConfig from 'shared/config/app.config';
 import monolithConfig from './config/monolith.config';
+import { LoggerService } from 'shared/modules/loggers';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
