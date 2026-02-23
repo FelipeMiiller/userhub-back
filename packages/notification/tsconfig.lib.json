@@ -1,0 +1,18 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "composite": true,
+    "outDir": "../../.tsbuild/packages/notification",
+    "rootDir": "."
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["jest.config.ts", "**/*.spec.ts"],
+  "references": [
+    {
+      "path": "../../shared/lib/tsconfig.lib.json"
+    },
+    {
+      "path": "../../shared/module/tsconfig.lib.json"
+    }
+  ]
+}

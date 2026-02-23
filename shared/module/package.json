@@ -1,0 +1,43 @@
+{
+  "name": "@hub/shared-module",
+  "version": "1.0.0",
+  "private": true,
+  "exports": {
+    "./authorization": "./authorization/index.ts",
+    "./cache": "./cache/index.ts",
+    "./config": "./config/index.ts",
+    "./event": "./event/index.ts",
+    "./http-client": "./http-client/index.ts",
+    "./integrations": "./integrations/index.ts",
+    "./loggers": "./loggers/index.ts",
+    "./persistences": "./persistences/index.ts"
+  },
+  "typesVersions": {
+    "*": {
+      "authorization": [
+        "./authorization/index.ts"
+      ],
+      "cache": [
+        "./cache/index.ts"
+      ],
+      "config": [
+        "./config/index.ts"
+      ],
+      "event": [
+        "./event/index.ts"
+      ],
+      "http-client": [
+        "./http-client/index.ts"
+      ],
+      "integrations": [
+        "./integrations/index.ts"
+      ],
+      "loggers": [
+        "./loggers/index.ts"
+      ],
+      "persistences": [
+        "./persistences/index.ts"
+      ]
+    }
+  }
+}

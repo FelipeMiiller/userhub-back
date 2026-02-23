@@ -2,9 +2,7 @@
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
   "targetDefaults": {
     "format": {
-      "outputs": [
-        "{projectRoot}/no"
-      ],
+      "outputs": ["{projectRoot}/no"],
       "cache": true
     },
     "lint:check": {
@@ -19,10 +17,7 @@
   },
   "release": {
     "projectsRelationship": "independent",
-    "projects": [
-      "apps/**",
-      "packages/**"
-    ],
+    "projects": ["apps/**", "packages/**"],
     "version": {
       "conventionalCommits": true
     },
@@ -75,9 +70,7 @@
       "options": {
         "targetName": "test"
       },
-      "exclude": [
-        "apps/test-e2e/**/*"
-      ]
+      "exclude": ["apps/test-e2e/**/*"]
     },
     {
       "plugin": "@nx/js/typescript",
@@ -105,13 +98,7 @@
     }
   ],
   "nxConfig": {
-    "projectFilePatterns": [
-      "project.json"
-    ],
-    "excludeFromWorkspaceInference": [
-      "**/node_modules/**",
-      "**/*.spec.ts",
-      "./package.json"
-    ]
+    "projectFilePatterns": ["project.json"],
+    "excludeFromWorkspaceInference": ["**/node_modules/**", "**/*.spec.ts", "./package.json"]
   }
 }

@@ -1,0 +1,43 @@
+{
+  "name": "notification",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/notification",
+  "projectType": "library",
+  "tags": [],
+  "targets": {
+    "lint:check": {
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["packages/notification/**/*.ts"]
+      }
+    },
+    "lint:fix": {
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["packages/notification/**/*.ts"],
+        "fix": true
+      }
+    },
+    "test:unit": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "packages/notification/jest.config.ts",
+        "passWithNoTests": true,
+        "testMatch": ["<rootDir>/**/unit/**/*.spec.ts"]
+      }
+    },
+    "test:e2e": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "packages/notification/jest.config.ts",
+        "passWithNoTests": true,
+        "testMatch": ["<rootDir>/**/e2e/**/*.spec.ts"],
+        "runInBand": true
+      }
+    }
+  }
+}

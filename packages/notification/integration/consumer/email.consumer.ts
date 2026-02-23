@@ -3,12 +3,12 @@ import { Nack, RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import {
   EmailNotificationPayload,
   EmailTemplates,
-} from 'shared/modules/integration/notifications/email.notification';
+} from '@hub/shared-module/integration/notifications/email.notification';
 import {
   NotificationExchange,
   NotificationQueue,
-} from 'shared/modules/integration/notifications/notification.types';
-import { LoggerService } from 'shared/modules/loggers';
+} from '@hub/shared-module/integration/notifications/notification.types';
+import { LoggerService } from '@hub/shared-module/loggers';
 import { MailService } from 'packages/notification/mail/core/mail.service';
 
 @Injectable()

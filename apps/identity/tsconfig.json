@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "include": [
+    "**/*.ts"
+  ],
+  "references": [
+    {
+      "path": "../../packages/identity/tsconfig.lib.json"
+    },
+    {
+      "path": "../../shared/lib/tsconfig.lib.json"
+    },
+    {
+      "path": "../../shared/module/tsconfig.lib.json"
+    }
+  ]
+}

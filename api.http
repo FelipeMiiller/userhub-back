@@ -1,3 +1,6 @@
+
+
+
 POST http://localhost:3005/auth/signup
 Content-Type: application/json
 

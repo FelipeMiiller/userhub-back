@@ -1,9 +1,9 @@
 //https://docs.ntfy.sh/publish/
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { HttpClient } from 'shared/modules/http-client/client/http.client';
+import { HttpClient } from '@hub/shared-module/http-client/client/http.client';
 import { NtfyConfig } from '../config';
-import { LoggerService } from 'shared/modules/loggers';
+import { LoggerService } from '@hub/shared-module/loggers';
 
 export interface NtfyOptions {
   topic?: string;

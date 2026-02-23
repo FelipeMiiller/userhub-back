@@ -4,8 +4,8 @@ import { PassportStrategy } from '@nestjs/passport';
 import { Request } from 'express';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { refreshStrategyPassport } from '../guards/refresh-auth.guard';
-import refreshJwtConfig from 'identity/config/refresh-jwt.config';
-import { Payload } from 'shared/modules/authorization';
+import refreshJwtConfig from '../../../config/refresh-jwt.config';
+import { Payload } from '@hub/shared-module/authorization';
 import { AuthenticationService } from '../services/auth.service';
 
 @Injectable()

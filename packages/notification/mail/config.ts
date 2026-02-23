@@ -1,6 +1,6 @@
 import { registerAs } from '@nestjs/config';
 import { IsBoolean, IsInt, IsString, IsUrl, Max, Min } from 'class-validator';
-import validateConfig from 'shared/lib/utils/validate-config';
+import validateConfig from '@hub/shared-lib/utils/validate-config';
 
 class EnvironmentVariablesValidator {
   @IsString()

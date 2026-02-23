@@ -99,7 +99,7 @@ export class AuthentificationController {
   @Public()
   @UseGuards(GoogleUserAuthGuard)
   @Get('google/signin')
-  async googleLoginUser(@Req() req: Request) {}
+  async googleLoginUser(@Req() req: Request) { }
 
   @Public()
   @UseGuards(GoogleUserAuthGuard)

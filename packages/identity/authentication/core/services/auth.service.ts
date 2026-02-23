@@ -6,22 +6,20 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { generateRandomPassword } from 'shared/lib/utils/password.utils';
+import { generateRandomPassword } from '@hub/shared-lib';
 import { ConfigType } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
-import { LoggerService } from 'shared/modules/loggers';
-import refreshJwtConfig from 'packages/identity/config/refresh-jwt.config';
-import { ChangePasswordRequestDto } from 'identity/account/http/dto/request/change-password.dto';
-import { Login, Payload } from 'shared/modules/authorization';
-import { Roles } from 'shared/modules/authorization/core/enum/role.enum';
-import jwtConfig from 'shared/modules/authorization/config/jwt.config';
-import { UsersRepository } from '../../../shared/persistence/repositories/users.typeorm.repository';
-import { EmailProducer } from 'packages/identity/integration/producers/email.producer';
-import { User } from '../../../shared/persistence/entities/users.entities';
-import { signUpRequestDto } from 'identity/authentication/http/dto/request/signup-user.dto';
-import { UpdateMeRequestDto } from 'identity/authentication/http/dto/request/update-me.dto';
-import { SignInDto } from 'identity/authentication/http/dto/request/signIn.dto';
+import { UsersRepository } from '../../../persistence/repository/users.typeorm.repository';
+import refreshJwtConfig from '../../../config/refresh-jwt.config';
+import jwtConfig from 'shared/module/authorization/config/jwt.config';
+import { LoggerService } from 'shared/module/loggers';
+import { EmailProducer } from '../../../integration/producers/email.producer';
+import { signUpRequestDto } from '../../http/dto/request/signup-user.dto';
+import { Login, Payload, Roles } from 'shared/module/authorization';
+import { SignInDto } from '../../http/dto/request/signIn.dto';
+import { ChangePasswordRequestDto } from '../../http/dto/request/change-password.dto';
+import { UpdateMeRequestDto } from '../../http/dto/request/update-me.dto';
 
 @Injectable()
 export class AuthenticationService {
@@ -178,7 +176,7 @@ export class AuthenticationService {
     id: string,
     refreshToken: string | undefined,
   ): Promise<Omit<Login, 'accessToken'>> {
-    try {
+  
       if (!refreshToken || !id) {
         throw new UnauthorizedException('Token de atualização de acesso inválido!');
       }
@@ -197,9 +195,7 @@ export class AuthenticationService {
         throw new UnauthorizedException('Token de atualização de acesso inválido!');
       }
       return { refreshToken };
-    } catch (error) {
-      throw error;
-    }
+  
   }
 
   async validateJwt(payload: Payload): Promise<Payload> {

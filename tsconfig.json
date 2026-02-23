@@ -3,10 +3,10 @@
   "files": [],
   "references": [
     {
-      "path": "./packages/shared/lib/tsconfig.lib.json"
+      "path": "./shared/lib/tsconfig.lib.json"
     },
     {
-      "path": "./packages/shared/module/tsconfig.lib.json"
+      "path": "./shared/module/tsconfig.lib.json"
     },
     {
       "path": "./packages/identity/tsconfig.lib.json"

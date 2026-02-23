@@ -1,10 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 
-import { IdentityPersistenceModule } from './shared/persistence/persistence.module';
 import { IdentityIntegrationModule } from './integration/identity.integration';
 import { IdentityScheduleModule } from './schedules/schedule.module';
-
-import { AuthorizationModule } from 'shared/modules/authorization';
 import { ConfigModule } from '@nestjs/config';
 import refreshJwtConfig from './config/refresh-jwt.config';
 import googleOauthConfig from './config/google.oauth.config';
@@ -16,7 +13,13 @@ import { GoogleOauthUserStrategy } from './authentication/core/strategies/google
 import { JwtStrategy } from './authentication/core/strategies/jwt.strategy';
 import { UsersService } from './account/core/services/users.service';
 import { RefreshStrategy } from './authentication/core/strategies/refresh.strategy';
-import jwtConfig from 'shared/modules/authorization/config/jwt.config';
+import { PermissionService } from './core/services/permission.service';
+import { PermissionEvaluatorService } from './core/services/permission-evaluator.service';
+import { PermissionGuard } from './core/guards/permission.guard';
+import { Reflector } from '@nestjs/core';
+import { AuthorizationModule } from '@hub/shared-module/authorization';
+import jwtConfig, { } from '@hub/shared-module/authorization/config/jwt.config';
+import { IdentityPersistenceModule } from './persistence/persistence.module';
 
 @Global()
 @Module({
@@ -37,7 +40,11 @@ import jwtConfig from 'shared/modules/authorization/config/jwt.config';
     GoogleOauthUserStrategy,
     JwtStrategy,
     RefreshStrategy,
+    PermissionService,
+    PermissionEvaluatorService,
+    PermissionGuard,
+    Reflector,
   ],
-  exports: [UsersService, AuthorizationModule],
+  exports: [UsersService, AuthorizationModule, PermissionService, PermissionEvaluatorService],
 })
-export class IdentityModule {}
+export class IdentityModule { }

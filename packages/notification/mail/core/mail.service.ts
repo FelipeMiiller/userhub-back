@@ -7,7 +7,7 @@ import Handlebars from 'handlebars';
 import { MailTemplates } from './constants/mail-templates.enum';
 import { MailConfig } from '../config';
 import { MailDomainException } from './excepition/mail-domain.exception';
-import { LoggerService } from 'shared/modules/loggers';
+import { LoggerService } from '@hub/shared-module/loggers';
 
 interface SendMailConfiguration {
   email: string;

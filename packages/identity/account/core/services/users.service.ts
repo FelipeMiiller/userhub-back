@@ -1,12 +1,12 @@
-import { Injectable } from '@nestjs/common';
-import { LoggerService } from 'shared/modules/loggers';
+import { EmailProducer } from "../../../integration/producers/email.producer";
+import { UsersRepository } from "../../../persistence/repository/users.typeorm.repository";
+import { LoggerService } from "shared/module/loggers";
+import { CreateUserRequestDto } from "../../http/dto/request/create-user.dto";
 import * as argon2 from 'argon2';
-import { LessThanOrEqual } from 'typeorm';
-import { CreateUserRequestDto } from 'identity/account/http/dto/request/create-user.dto';
-import { EmailProducer } from 'packages/identity/integration/producers/email.producer';
-import { UsersRepository } from '../../../shared/persistence/repositories/users.typeorm.repository';
-import { Roles } from 'shared/modules/authorization';
-import { User } from 'identity/shared/persistence/entities/users.entities';
+import { Roles } from "shared/module/authorization";
+import { User } from "../../../persistence/entities/users.entities";
+import { IsNull, LessThanOrEqual } from "typeorm";
+import { Injectable } from "@nestjs/common";
 
 @Injectable()
 export class UsersService {
@@ -58,14 +58,14 @@ export class UsersService {
     take,
   }: {
     role?: Roles;
-    sortBy?: string;
+    sortBy?: keyof User;
     order?: 'asc' | 'desc';
     skip?: number;
     take?: number;
   }): Promise<User[]> {
     return this.usersRepository.findMany({
       where: role ? { Role: role } : undefined,
-      order: { [sortBy]: order },
+      order: sortBy ? ({ [sortBy]: order } ) : undefined,
       skip,
       take,
     });
@@ -75,7 +75,7 @@ export class UsersService {
     sinceDate.setDate(sinceDate.getDate() - days);
 
     return this.usersRepository.findMany({
-      where: [{ LastLoginAt: null }, { LastLoginAt: LessThanOrEqual(sinceDate) }],
+      where: [{ LastLoginAt: IsNull() }, { LastLoginAt: LessThanOrEqual(sinceDate) }],
       order: { LastLoginAt: 'ASC' },
     });
   }

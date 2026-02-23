@@ -3,7 +3,7 @@ name: userhub
 services:
   postgres:
     container_name: postgres
-    image: postgres:17.0-alpine
+    image: postgres:18.0-alpine
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}

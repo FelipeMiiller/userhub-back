@@ -9,7 +9,7 @@ import {
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { Roles } from 'shared/modules/authorization/core/enum/role.enum';
+import { Roles } from '@hub/shared-module/authorization/core/enum/role.enum';
 
 export class CreateUserRequestDto {
   @ApiProperty({

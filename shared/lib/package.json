@@ -1,0 +1,16 @@
+{
+  "name": "@hub/shared-lib",
+  "version": "1.0.0",
+  "private": true,
+  "exports": {
+    ".": "./index.ts",
+    "./test": "./test/index.ts"
+  },
+  "typesVersions": {
+    "*": {
+      ".": ["./index.ts"],
+      "test": ["./test/index.ts"]
+    }
+  }
+}
+

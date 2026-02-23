@@ -1,6 +1,6 @@
 import { IsOptional, IsString, IsEnum, IsUrl, IsBoolean } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Roles } from 'shared/modules/authorization/core/enum/role.enum';
+import { Roles } from '@hub/shared-module/authorization/core/enum/role.enum';
 
 export class UpdateUserRequestDto {
   @ApiPropertyOptional({ description: 'Novo email do usuário', maxLength: 255 })

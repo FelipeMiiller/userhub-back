@@ -3,8 +3,8 @@ import { MicroserviceOptions } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
 import { Transport } from '@nestjs/microservices';
-import { LoggerService } from 'shared/modules/loggers';
-import { RabbitMQConfig } from 'shared/config/rabbitmq.config';
+import { LoggerService } from '@hub/shared-module/loggers';
+import { RabbitMQConfig } from '@hub/shared-module/config/rabbitmq.config';
 
 async function bootstrap() {
   const appContext = await NestFactory.createApplicationContext(AppModule);

@@ -1,35 +1,31 @@
 import { registerAs } from '@nestjs/config';
-import { IsOptional, IsString, IsUrl } from 'class-validator';
-import validateConfig from 'shared/lib/utils/validate-config';
+import { IsString, IsUrl } from 'class-validator';
+import { configValidator } from '@hub/shared-module/config';
+
 
 class EnvironmentVariablesValidator {
   @IsUrl({ require_tld: false })
-  @IsOptional()
   FRONTEND_DOMAIN: string;
 
   @IsUrl({ require_tld: false })
-  @IsOptional()
   BACKEND_DOMAIN: string;
 
   @IsString()
-  @IsOptional()
   GOOGLE_CLIENT_ID: string;
 
   @IsString()
-  @IsOptional()
   GOOGLE_SECRET: string;
 
   @IsString()
-  @IsOptional()
-  GOOGLE_CALLBACK_USER_URL: string;
+  GOOGLE_CALLBACK_USER_PATH: string;
 }
 
 export default registerAs('googleOAuth', () => {
-  validateConfig(process.env, EnvironmentVariablesValidator);
+  const config = configValidator(process.env, EnvironmentVariablesValidator);
   return {
-    clientId: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_SECRET,
-    callbackFrontUser: `${process.env.FRONTEND_DOMAIN}/${process.env.GOOGLE_CALLBACK_USER_URL}`,
-    callbackBackendUser: `${process.env.BACKEND_DOMAIN}/auth/google/callback`,
+    clientId: config.GOOGLE_CLIENT_ID,
+    clientSecret: config.GOOGLE_SECRET,
+    callbackFrontUser: `${config.FRONTEND_DOMAIN}/${config.GOOGLE_CALLBACK_USER_PATH}`,
+    callbackBackendUser: `${config.BACKEND_DOMAIN}/auth/google/callback`,
   };
 });

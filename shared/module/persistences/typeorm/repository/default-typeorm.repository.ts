@@ -1,0 +1,243 @@
+import {
+  BadRequestException,
+  ConflictException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
+import {
+  DeepPartial,
+  EntityManager,
+  EntityTarget,
+  FindManyOptions,
+  FindOneOptions,
+  FindOptionsWhere,
+  ObjectId,
+  Repository,
+  SaveOptions,
+} from 'typeorm';
+import { DatabaseException } from '../exeption/database.exception';
+import { DefaultTypeOrmEntity } from '../entity/default-typeorm.entity';
+
+
+interface PostgresError {
+  code: string;
+  detail?: string;
+  constraint?: string;
+  table?: string;
+  column?: string;
+  [key: string]: any;
+}
+
+export abstract class DefaultTypeOrmRepository<T extends DefaultTypeOrmEntity<T>> {
+  private repository: Repository<T>;
+  protected transactionalEntityManager: EntityManager;
+  constructor(
+    readonly entity: EntityTarget<T>,
+    readonly manager: EntityManager,
+  ) {
+    /**
+     * Note that we don't extend the Repository class from TypeORM, but we use it as a property.
+     * This way we can control the access to the repository methods and avoid exposing them to the outside world.
+     */
+    this.repository = manager.getRepository(entity);
+    this.transactionalEntityManager = manager;
+  }
+
+  protected handlePostgresError(error: unknown): never {
+    if (typeof error === 'object' && error !== null && 'code' in error) {
+      const pgError = error as PostgresError;
+      switch (pgError.code) {
+        case '23505':
+          throw new ConflictException('Registro duplicado.', {
+            cause: pgError as PostgresError,
+            description: 'Já existe registro com os dados informados.',
+          });
+        case '23502':
+          throw new BadRequestException('Campo obrigatório não informado.', {
+            cause: pgError as PostgresError,
+            description: 'Verifique os campos obrigatórios.',
+          });
+        case '23503':
+          throw new BadRequestException('Relacionamento inválido.', {
+            cause: pgError as PostgresError,
+            description: 'Verifique as chaves estrangeiras.',
+          });
+        case '23514':
+          throw new UnprocessableEntityException('Valor inválido para um dos campos.', {
+            cause: pgError as PostgresError,
+            description: 'Verifique as restrições dos campos.',
+          });
+        default:
+          throw new DatabaseException('Ocorreu um erro inesperado no banco de dados.', {
+            cause: pgError as PostgresError,
+            description: `Código de erro PostgreSQL: ${pgError.code}`,
+          });
+      }
+    }
+    throw new DatabaseException('Ocorreu um erro desconhecido no banco de dados.');
+  }
+
+  async create(entity: DeepPartial<T>, options?: SaveOptions): Promise<T> {
+    try {
+      const newEntity = this.repository.create(entity);
+      return await this.repository.save(newEntity, options);
+    } catch (error) {
+      this.handlePostgresError(error);
+    }
+  }
+
+  async update(id: string, entity: DeepPartial<T>, options?: SaveOptions): Promise<T | null> {
+    const updateEntity = await this.repository.preload({
+      id: id,
+      ...entity,
+    });
+    if (!updateEntity) {
+      return null;
+    }
+    try {
+      return await this.repository.save(updateEntity, options);
+    } catch (error) {
+      this.handlePostgresError(error);
+    }
+  }
+
+  async findOne(options: FindOneOptions<T>): Promise<T | null> {
+    try {
+      return await this.repository.findOne(options);
+    } catch (error) {
+      this.handlePostgresError(error);
+    }
+  }
+  async findOneById(id: string, relations?: string[]): Promise<T | null> {
+    try {
+      return await this.repository.findOne({
+        where: { id } as FindOptionsWhere<T>,
+        relations,
+      });
+    } catch (error) {
+      this.handlePostgresError(error);
+    }
+  }
+
+  async find(options: FindOneOptions<T>): Promise<T[]> {
+    try {
+      return await this.repository.find(options);
+    } catch (error) {
+      this.handlePostgresError(error);
+    }
+  }
+
+  async findMany(options?: FindManyOptions<T>): Promise<T[]> {
+    try {
+      return await this.repository.find(options);
+    } catch (error) {
+      this.handlePostgresError(error);
+    }
+  }
+  async exists(id: string): Promise<boolean> {
+    try {
+      return await this.repository.exists({
+        where: { id } as FindOptionsWhere<T>,
+      });
+    } catch (error) {
+      this.handlePostgresError(error);
+    }
+  }
+
+  async existsBy(properties: FindOptionsWhere<T>): Promise<boolean> {
+    try {
+      return await this.repository.exists({
+        where: properties,
+      });
+    } catch (error) {
+      this.handlePostgresError(error);
+    }
+  }
+
+  async delete(
+    criteria:
+      | string
+      | number
+      | Date
+      | ObjectId
+      | string[]
+      | number[]
+      | Date[]
+      | ObjectId[]
+      | FindOptionsWhere<T>
+      | FindOptionsWhere<T>[],
+  ): Promise<void> {
+    try {
+      await this.repository.delete(criteria);
+    } catch (error) {
+      this.handlePostgresError(error);
+    }
+  }
+
+  /**
+   * Realiza soft delete (marca como deletado, sem remover do banco)
+   */
+  async softDelete(
+    criteria:
+      | string
+      | number
+      | Date
+      | ObjectId
+      | string[]
+      | number[]
+      | Date[]
+      | ObjectId[]
+      | FindOptionsWhere<T>
+      | FindOptionsWhere<T>[],
+  ): Promise<void> {
+    try {
+      await this.repository.softDelete(criteria);
+    } catch (error) {
+      this.handlePostgresError(error);
+    }
+  }
+
+  /**
+   * Restaura registros soft deleted
+   */
+  async restore(
+    criteria:
+      | string
+      | number
+      | Date
+      | ObjectId
+      | string[]
+      | number[]
+      | Date[]
+      | ObjectId[]
+      | FindOptionsWhere<T>
+      | FindOptionsWhere<T>[],
+  ): Promise<void> {
+    try {
+      await this.repository.restore(criteria);
+    } catch (error) {
+      this.handlePostgresError(error);
+    }
+  }
+
+  /**
+   * Busca incluindo registros deletados (soft delete)
+   */
+  async findManyWithDeleted(options?: FindManyOptions<T>): Promise<T[]> {
+    try {
+      return await this.repository.find({ ...(options || {}), withDeleted: true });
+    } catch (error) {
+      this.handlePostgresError(error);
+    }
+  }
+
+  /**
+   * Busca um registro incluindo deletados (soft delete)
+   */
+  async findOneWithDeleted(options: FindOneOptions<T>): Promise<T | null> {
+    try {
+      return await this.repository.findOne({ ...options, withDeleted: true });
+    } catch (error) {
+      this.handlePostgresError(error);
+    }
+  }
+}

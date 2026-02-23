@@ -2,9 +2,10 @@ import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { Profile, Strategy, VerifyCallback } from 'passport-google-oauth20';
-import googleOauthConfig from 'packages/identity/config/google.oauth.config';
+
 import { AuthenticationService } from '../services/auth.service';
 import { userGoogleStrategyPassport } from '../guards/googleUser-auth.guard';
+import googleOauthConfig from '../../../config/google.oauth.config';
 
 @Injectable()
 export class GoogleOauthUserStrategy extends PassportStrategy(
@@ -24,8 +25,8 @@ export class GoogleOauthUserStrategy extends PassportStrategy(
     });
   }
   async validate(
-    accessToken: string,
-    refreshToken: string,
+    _accessToken: string,
+    _refreshToken: string,
     profile: Profile,
     done: VerifyCallback,
   ) {

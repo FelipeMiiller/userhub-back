@@ -2,8 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { Inject } from '@nestjs/common';
 import { Cache } from 'cache-manager';
-import { LoggerService } from 'shared/modules/loggers';
 import { UsersService } from '../account/core/services/users.service';
+import { LoggerService } from '@hub/shared-module/loggers';
+
 
 @Injectable()
 export class LastActivityService {

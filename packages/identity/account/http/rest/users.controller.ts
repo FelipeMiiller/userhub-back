@@ -28,6 +28,8 @@ import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 import { JwtAuthGuard } from 'shared/modules/authorization/core/guards/jwt-auth.guard';
 import { RolesGuards } from 'shared/modules/authorization/core/decorator/roles.decorator';
 import { Roles } from 'shared/modules/authorization/core/enum/role.enum';
+import { Permission } from 'packages/identity/core/decorators/permission.decorator';
+import { PermissionGuard } from 'packages/identity/core/guards/permission.guard';
 import { UsersService } from '../../core/services/users.service';
 import { CreateUserRequestDto } from '../dto/request/create-user.dto';
 import { UserResponseDto } from '../dto/response/user-response.dto';
@@ -41,6 +43,8 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @RolesGuards([Roles.ADMIN])
+  @Permission('tenant.user.create')
+  @UseGuards(PermissionGuard)
   @Post()
   @ApiOperation({ summary: 'Cria um novo usuário' })
   @ApiBody({ type: CreateUserRequestDto })
@@ -56,6 +60,8 @@ export class UsersController {
   @UseInterceptors(CacheInterceptor)
   @CacheTTL(300)
   @RolesGuards([Roles.ADMIN])
+  @Permission('tenant.user.list')
+  @UseGuards(PermissionGuard)
   @Get()
   @ApiOperation({ summary: 'Lista todos os usuários (paginado, filtro por role e ordenação)' })
   @ApiQuery({
@@ -88,6 +94,8 @@ export class UsersController {
   @UseInterceptors(CacheInterceptor)
   @CacheTTL(5)
   @RolesGuards([Roles.ADMIN])
+  @Permission('tenant.user.list')
+  @UseGuards(PermissionGuard)
   @Get('inactive')
   @ApiOperation({ summary: 'Lista usuários inativos (sem login recente)' })
   @ApiQuery({
@@ -109,6 +117,8 @@ export class UsersController {
   @UseInterceptors(CacheInterceptor)
   @CacheTTL(5)
   @RolesGuards([Roles.ADMIN])
+  @Permission('tenant.user.view')
+  @UseGuards(PermissionGuard)
   @Get(':id')
   @ApiOperation({ summary: 'Busca usuário por ID' })
   @ApiParam({ name: 'id', type: String })
@@ -127,6 +137,8 @@ export class UsersController {
   @UseInterceptors(CacheInterceptor)
   @CacheTTL(5)
   @RolesGuards([Roles.ADMIN])
+  @Permission('tenant.user.view')
+  @UseGuards(PermissionGuard)
   @Get('email/:email')
   @ApiOperation({ summary: 'Busca usuário por email' })
   @ApiParam({ name: 'email', type: String })
@@ -140,6 +152,8 @@ export class UsersController {
   }
 
   @RolesGuards([Roles.ADMIN])
+  @Permission('tenant.user.update')
+  @UseGuards(PermissionGuard)
   @Patch(':id')
   @ApiOperation({ summary: 'Atualiza usuário por ID' })
   @ApiParam({ name: 'id', type: String })
@@ -156,6 +170,8 @@ export class UsersController {
   }
 
   @RolesGuards([Roles.ADMIN])
+  @Permission('tenant.user.delete')
+  @UseGuards(PermissionGuard)
   @Delete(':id')
   @HttpCode(204)
   @ApiOperation({ summary: 'Remove usuário por ID' })

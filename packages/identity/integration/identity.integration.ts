@@ -2,14 +2,11 @@
 //https://tryrabbitmq.com/
 import { RabbitMQModule } from '@golevelup/nestjs-rabbitmq';
 import { Global, Module } from '@nestjs/common';
-import rabbitmqConfig from 'shared/config/rabbitmq.config';
-import { ConfigModule, ConfigService } from '@nestjs/config';
 import { EmailProducer } from './producers/email.producer';
-import {
-  NotificationExchange,
-  NotificationExchangeType,
-  NotificationQueue,
-} from 'shared/modules/integration/notifications/notification.types';
+import rabbitmqConfig, { RabbitMQConfig } from '@hub/shared-module/integrations/config/rabbitmq.config';
+import { NotificationExchange, NotificationExchangeType, NotificationQueue } from '@hub/shared-module/integrations';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+
 
 @Global()
 @Module({
@@ -18,7 +15,8 @@ import {
     RabbitMQModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
-        const uri = configService.get<string>('rabbitmq.uri');
+        const { uri } = configService.get('rabbitmq') as RabbitMQConfig;
+
         return {
           uri,
           connectionInitOptions: { wait: false }, // Wait for the connection to be establishe
@@ -42,4 +40,4 @@ import {
   providers: [EmailProducer],
   exports: [EmailProducer],
 })
-export class IdentityIntegrationModule {}
+export class IdentityIntegrationModule { }

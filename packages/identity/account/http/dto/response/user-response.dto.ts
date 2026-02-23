@@ -8,8 +8,8 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import { Roles } from 'shared/modules/authorization/core/enum/role.enum';
-import { DefaultResponseDto } from 'shared/core/dto/response/default-response.dto';
+import { Roles } from '@hub/shared-module/authorization/core/enum/role.enum';
+import { DefaultResponseDto } from '@hub/shared-lib/core/dto/response/default-response.dto';
 
 export class UserResponseDto extends DefaultResponseDto {
   @IsNotEmpty()

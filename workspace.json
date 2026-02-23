@@ -1,7 +1,6 @@
 {
   "version": 2,
   "projects": {
-
     "notification": {
       "root": "apps/notification",
       "sourceRoot": "apps/notification",
@@ -39,6 +38,18 @@
     "packages-notification": {
       "root": "packages/notification",
       "sourceRoot": "packages/notification",
+      "projectType": "library",
+      "targets": {}
+    },
+    "shared-lib": {
+      "root": "shared/lib",
+      "sourceRoot": "shared/lib",
+      "projectType": "library",
+      "targets": {}
+    },
+    "shared-module": {
+      "root": "shared/module",
+      "sourceRoot": "shared/module",
       "projectType": "library",
       "targets": {}
     }

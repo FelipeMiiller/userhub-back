@@ -1,22 +1,24 @@
 import { registerAs } from '@nestjs/config';
 import { JwtModuleOptions } from '@nestjs/jwt';
-import { IsString } from 'class-validator';
-import validateConfig from 'shared/lib/utils/validate-config';
+import { IsString, IsOptional } from 'class-validator';
+import { configValidator } from '@hub/shared-module/config';
+import { StringValue } from 'ms';
 
 class EnvironmentVariablesValidator {
   @IsString()
   REFRESH_JWT_SECRET: string;
 
+  @IsOptional()
   @IsString()
-  REFRESH_JWT_EXPIRES_IN: string;
+  REFRESH_JWT_EXPIRES_IN: StringValue = '1d';
 }
 
 export default registerAs('refresh-jwt', (): JwtModuleOptions => {
-  validateConfig(process.env, EnvironmentVariablesValidator);
+  const config = configValidator(process.env, EnvironmentVariablesValidator);
   return {
-    secret: process.env.REFRESH_JWT_SECRET || 'secret',
+    secret: config.REFRESH_JWT_SECRET,
     signOptions: {
-      expiresIn: process.env.REFRESH_JWT_EXPIRES_IN || '1d',
+      expiresIn: config.REFRESH_JWT_EXPIRES_IN,
       algorithm: 'HS256',
     },
   };

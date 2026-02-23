@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { pathEnv } from 'shared/lib/utils/pathEnv';
+import { pathEnv } from '@hub/shared-lib/utils/pathEnv';
 import { NotificationModule } from 'packages/notification/notification.module';
-import rabbitmqConfig from 'shared/config/rabbitmq.config';
-import { MicroserviceExceptionFilter } from 'shared/core/filters/microservice-exception.filter';
+import rabbitmqConfig from '@hub/shared-module/config/rabbitmq.config';
+import { MicroserviceExceptionFilter } from '@hub/shared-lib/core/filters/microservice-exception.filter';
 import { APP_FILTER } from '@nestjs/core';
-import { LoggerService } from 'shared/modules/loggers';
+import { LoggerService } from '@hub/shared-module/loggers';
 
 @Module({
   imports: [
