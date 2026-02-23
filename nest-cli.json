@@ -8,15 +8,14 @@
     "deleteOutDir": false,
     "webpack": false
   },
- 
   "projects": {
-    "monolith": {
+    "identity": {
       "type": "application",
-      "root": "apps/monolith",
+      "root": "apps/identity",
       "entryFile": "main",
-      "sourceRoot": "apps/monolith",
+      "sourceRoot": "apps/identity",
       "compilerOptions": {
-        "tsConfigPath": "apps/monolith/tsconfig.app.json"
+        "tsConfigPath": "apps/identity/tsconfig.app.json"
       }
     },
     "notification": {
@@ -26,7 +25,6 @@
       "sourceRoot": "apps/notification",
       "compilerOptions": {
         "tsConfigPath": "apps/notification/tsconfig.app.json"
-      
       }
     }
   }

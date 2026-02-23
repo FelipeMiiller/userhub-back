@@ -1,39 +1,24 @@
 {
-  "compilerOptions": {
-    "module": "commonjs",
-    "declaration": true,
-    "removeComments": true,
-    "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
-    "allowSyntheticDefaultImports": true,
-    "target": "ES2021",
-    "resolveJsonModule": true,
-    "sourceMap": true,
-    "outDir": "./dist",
-    "baseUrl": "./",
-    "paths": {
-      "identity/*": [
-        "packages/identity/*"
-      ],
-      "notification/*": [
-        "packages/notification/*"
-      ],
-      "shared/*": [
-        "./shared/*"
-      ]
+  "extends": "./tsconfig.base.json",
+  "files": [],
+  "references": [
+    {
+      "path": "./packages/shared/lib/tsconfig.lib.json"
     },
-    "incremental": true,
-    "skipLibCheck": true,
-    "strictNullChecks": false,
-    "noImplicitAny": false,
-    "strictBindCallApply": false,
-    "forceConsistentCasingInFileNames": false,
-    "noFallthroughCasesInSwitch": false
-  },
-  "include":
-   [ "**/*.ts"],
-  "exclude": [
-    "node_modules",
-    "**/*.js"
+    {
+      "path": "./packages/shared/module/tsconfig.lib.json"
+    },
+    {
+      "path": "./packages/identity/tsconfig.lib.json"
+    },
+    {
+      "path": "./packages/notification/tsconfig.lib.json"
+    },
+    {
+      "path": "./apps/identity"
+    },
+    {
+      "path": "./apps/notification"
+    },
   ]
 }

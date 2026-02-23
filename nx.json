@@ -1,0 +1,117 @@
+{
+  "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "targetDefaults": {
+    "format": {
+      "outputs": [
+        "{projectRoot}/no"
+      ],
+      "cache": true
+    },
+    "lint:check": {
+      "cache": true
+    },
+    "test:e2e": {
+      "cache": true
+    },
+    "test:unit": {
+      "cache": true
+    }
+  },
+  "release": {
+    "projectsRelationship": "independent",
+    "projects": [
+      "apps/**",
+      "packages/**"
+    ],
+    "version": {
+      "conventionalCommits": true
+    },
+    "conventionalCommits": {
+      "types": {
+        "chore": {
+          "semverBump": "patch",
+          "changelog": {
+            "title": "Chores"
+          }
+        },
+        "fix": {
+          "semverBump": "patch",
+          "changelog": {
+            "title": "Bug Fixes"
+          }
+        },
+        "feat": {
+          "semverBump": "minor",
+          "changelog": {
+            "title": "Features"
+          }
+        }
+      }
+    },
+    "changelog": {
+      "projectChangelogs": {
+        "createRelease": false,
+        "file": "{projectRoot}/CHANGELOG.md",
+        "renderer": "changelog-renderer"
+      }
+    }
+  },
+  "sync": {
+    "applyChanges": false
+  },
+  "workspaceLayout": {
+    "libsDir": "packages",
+    "appsDir": "apps"
+  },
+  "plugins": [
+    {
+      "plugin": "@nx/eslint/plugin",
+      "options": {
+        "targetName": "lint"
+      }
+    },
+    {
+      "plugin": "@nx/jest/plugin",
+      "options": {
+        "targetName": "test"
+      },
+      "exclude": [
+        "apps/test-e2e/**/*"
+      ]
+    },
+    {
+      "plugin": "@nx/js/typescript",
+      "options": {
+        "typecheck": {
+          "targetName": "typecheck"
+        },
+        "build": {
+          "targetName": "build",
+          "configName": "tsconfig.lib.json",
+          "buildDepsName": "build-deps",
+          "watchDepsName": "watch-deps"
+        }
+      }
+    },
+    {
+      "plugin": "@nx/webpack/plugin",
+      "options": {
+        "buildTargetName": "build",
+        "serveTargetName": "serve",
+        "previewTargetName": "preview",
+        "buildDepsTargetName": "build-deps",
+        "watchDepsTargetName": "watch-deps"
+      }
+    }
+  ],
+  "nxConfig": {
+    "projectFilePatterns": [
+      "project.json"
+    ],
+    "excludeFromWorkspaceInference": [
+      "**/node_modules/**",
+      "**/*.spec.ts",
+      "./package.json"
+    ]
+  }
+}

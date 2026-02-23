@@ -221,4 +221,20 @@ yarn test:cov
 # preview template email
  yarn email:dev
 
+# Instalação do pacote `uuid`
+
+Instale a dependência no workspace (root) ou apenas no package `identity`:
+
+```bash
+# Instalar no workspace root (use -W para confirmar)
+yarn add uuid -W
+yarn add -D @types/uuid -W
+
+# Instalar somente no package `identity`
+yarn workspace identity add uuid
+yarn workspace identity add -D @types/uuid
+```
+
+Use o `-W` somente quando realmente quiser adicionar a dependência ao root do monorepo.
+
 ```
