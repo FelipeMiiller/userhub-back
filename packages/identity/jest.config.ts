@@ -7,4 +7,8 @@ export default {
   },
   moduleFileExtensions: ['ts', 'js', 'html'],
   coverageDirectory: '../../coverage/packages/identity',
+  transformIgnorePatterns: ['node_modules/(?!(@faker-js|uuid)/)'],
+  moduleNameMapper: {
+    '^pg$': '<rootDir>/../../node_modules/pg/lib/index.js',
+  },
 };

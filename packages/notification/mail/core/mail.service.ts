@@ -27,7 +27,7 @@ export class MailService {
     private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
   ) {
-    this.configMail = this.configService.get<MailConfig>('mail');
+    this.configMail = this.configService.get<MailConfig>('mail') as MailConfig;
 
     this.templatesDir = path.join(process.cwd(), 'packages/notification/mail/core/templates');
 
@@ -43,7 +43,7 @@ export class MailService {
       const template = Handlebars.compile(templateSource);
       return template(context);
     } catch (error) {
-      throw new MailDomainException(`Erro ao compilar template: ${error.message}`);
+      throw new MailDomainException(`Erro ao compilar template: ${(error as Error).message}`);
     }
   }
 
@@ -58,7 +58,7 @@ export class MailService {
         text: text || html,
       });
     } catch (error) {
-      throw new MailDomainException(`Falha ao enviar email: ${error.message}`);
+      throw new MailDomainException(`Falha ao enviar email: ${(error as Error).message}`);
     }
   }
 

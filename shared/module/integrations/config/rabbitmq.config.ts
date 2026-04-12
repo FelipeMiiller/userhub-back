@@ -1,16 +1,7 @@
 import { registerAs } from '@nestjs/config';
-import {
-  IsString,
-  IsOptional,
-  Min,
-  Max,
-  IsUrl,
-  IsBoolean,
-  IsInt,
-} from 'class-validator';
+import { IsString, IsOptional, Min, Max, IsUrl, IsBoolean, IsInt } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { configValidator } from '../../config/util/config.validator';
-
 
 export class EnvironmentVariablesValidator {
   @IsUrl()
@@ -32,28 +23,26 @@ export class EnvironmentVariablesValidator {
 
   @IsOptional() // Adicionado IsOptional pois você usa vhost || '/'
   @IsString()
-  RABBITMQ_VHOST= '/';
+  RABBITMQ_VHOST = '/';
 
   @IsOptional()
   @Transform(({ value }) => value === 'true' || value === true)
   @IsBoolean()
-  RABBITMQ_PERSISTENT= true;
+  RABBITMQ_PERSISTENT = true;
 
   @IsOptional()
   @Transform(({ value }) => (value ? parseInt(value, 10) : 60))
   @IsInt()
-  RABBITMQ_HEARTBEAT= 60;
+  RABBITMQ_HEARTBEAT = 60;
 
   @IsOptional()
   @Transform(({ value }) => (value ? parseInt(value, 10) : 10))
   @IsInt()
-  RABBITMQ_PREFETCH_COUNT= 10;
+  RABBITMQ_PREFETCH_COUNT = 10;
 }
 
 export default registerAs('rabbitmq', (): RabbitMQConfig => {
-
   const validatedConfig = configValidator(process.env, EnvironmentVariablesValidator);
-
 
   const {
     RABBITMQ_HOST,

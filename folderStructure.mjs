@@ -11,7 +11,6 @@ const finalDirectoryWithUnitTestsBuilder = (fileType) => ({
           name: 'unit',
           children: [{ name: `{kebab-case}.${fileType}.spec.ts` }],
         },
-        
       ],
     },
     {
@@ -306,15 +305,11 @@ export const folderStructureConfig = createFolderStructure({
     finalDirectoryWithUnitTests_service: finalDirectoryWithUnitTestsBuilder('service'),
     finalDirectoryWithUnitTests_resolver: finalDirectoryWithUnitTestsBuilder('resolver'),
     finalDirectoryWithUnitTests_model: finalDirectoryWithUnitTestsBuilder('model'),
-    finalDirectoryWithUnitTests_controller:
-      finalDirectoryWithUnitTestsBuilder('controller'),
-    finalDirectoryWithUnitTests_repository:
-      finalDirectoryWithUnitTestsBuilder('repository'),
+    finalDirectoryWithUnitTests_controller: finalDirectoryWithUnitTestsBuilder('controller'),
+    finalDirectoryWithUnitTests_repository: finalDirectoryWithUnitTestsBuilder('repository'),
     finalDirectoryWithUnitTests_entity: finalDirectoryWithUnitTestsBuilder('entity'),
-    finalDirectoryWithUnitTests_exception:
-      finalDirectoryWithUnitTestsBuilder('exception'),
-    finalDirectoryWithUnitTests_eventHandler:
-      finalDirectoryWithUnitTestsBuilder('event-handler'),
+    finalDirectoryWithUnitTests_exception: finalDirectoryWithUnitTestsBuilder('exception'),
+    finalDirectoryWithUnitTests_eventHandler: finalDirectoryWithUnitTestsBuilder('event-handler'),
     finalDirectoryWithUnitTests_httpClient: finalDirectoryWithUnitTestsBuilder('client'),
     finalDirectoryWithUnitTests_facade: finalDirectoryWithUnitTestsBuilder('facade'),
     tsOnlyFiles: {

@@ -30,7 +30,6 @@ export * from './core/filters/service-exception.filter';
 
 ## Testes
 
-
 A pasta `packages/shared/lib/test` contém utilitários e arquivos auxiliares destinados a facilitar a escrita e execução de testes dentro do monorepo.
 
 O que encontrar lá:
@@ -51,7 +50,6 @@ import { createNestApp } from 'packages/shared/lib/test';
 - Se um helper precisar inicializar infra (conexões, provedores externos), considere movê-lo para `packages/shared/modules` ou documentá-lo claramente como um helper de integração.
 
 - Evite misturar código de produção com helpers de teste no mesmo módulo/barrel para não vazar dependências para produção.
-
 
 ```bash
 cd back

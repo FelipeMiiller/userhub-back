@@ -73,7 +73,7 @@ export class ServerExceptionFilter implements ExceptionFilter {
       context = exception.context;
 
       stackTrace = exception.stack;
-      details = exception.details;
+      details = exception.details ?? {};
       errorResponse.message = 'Internal Server Error';
     } else if (exception instanceof Error) {
       // Tratamento para erros genéricos (e.g., TypeError, ReferenceError)

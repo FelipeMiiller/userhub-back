@@ -39,7 +39,7 @@ export class GoogleOauthUserStrategy extends PassportStrategy(
       }
 
       if (!email) {
-        return done(new UnauthorizedException('Email do Google profile é obrigatório'), null);
+        return done(new UnauthorizedException('Email do Google profile é obrigatório'), false);
       }
 
       const firstName =
@@ -54,13 +54,13 @@ export class GoogleOauthUserStrategy extends PassportStrategy(
         email,
         firstName,
         lastName,
-        photo,
+        photo: photo ?? '',
       });
 
       return done(null, user);
     } catch (error) {
       console.error('Erro na validação do Google OAuth:');
-      return done(error, null);
+      return done(error, false);
     }
   }
 }

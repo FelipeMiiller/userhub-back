@@ -8,6 +8,6 @@ export const pathEnv = (() => {
   if (env === 'test') {
     return ['.env.test'];
   }
-  
+
   return ['.env'];
 })();

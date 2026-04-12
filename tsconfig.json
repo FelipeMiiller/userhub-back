@@ -1,24 +1,5 @@
 {
   "extends": "./tsconfig.base.json",
   "files": [],
-  "references": [
-    {
-      "path": "./shared/lib/tsconfig.lib.json"
-    },
-    {
-      "path": "./shared/module/tsconfig.lib.json"
-    },
-    {
-      "path": "./packages/identity/tsconfig.lib.json"
-    },
-    {
-      "path": "./packages/notification/tsconfig.lib.json"
-    },
-    {
-      "path": "./apps/identity"
-    },
-    {
-      "path": "./apps/notification"
-    },
-  ]
+  "references": []
 }

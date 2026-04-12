@@ -8,8 +8,8 @@ import {
   NotificationExchange,
   NotificationExchangeType,
   NotificationQueue,
-} from '@hub/shared-module/integration/notifications/notification.types';
-import rabbitmqConfig from '@hub/shared-module/config/rabbitmq.config';
+} from '@hub/shared-module/integrations';
+import rabbitmqConfig from '@hub/shared-module/integrations/config/rabbitmq.config';
 import { MailModule } from '../mail/mail.module';
 import { PushNotificationModule } from '../push-notification/push-notification.module';
 
@@ -20,7 +20,7 @@ import { PushNotificationModule } from '../push-notification/push-notification.m
     RabbitMQModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
-        const uri = configService.get<string>('rabbitmq.uri');
+        const uri = configService.get<string>('rabbitmq.uri') as string;
         return {
           uri,
           connectionInitOptions: { wait: false }, // Wait for the connection to be establishe

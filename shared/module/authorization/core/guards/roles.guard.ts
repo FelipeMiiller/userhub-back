@@ -1,26 +1,21 @@
 import { type CanActivate, type ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { JwtService } from '@nestjs/jwt';
 import { RolesGuards } from '../decorator/roles.decorator';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
-  constructor(
-    private reflector: Reflector,
-    private jwtService: JwtService,
-  ) {}
+  constructor(private reflector: Reflector) {}
 
-  async canActivate(context: ExecutionContext): Promise<boolean> {
-    const roles = this.reflector.get(RolesGuards, context.getHandler());
-    const token = context.switchToHttp().getRequest().header('Authorization');
+  canActivate(context: ExecutionContext): boolean {
+    const roles = this.reflector.get<string[]>(RolesGuards, context.getHandler());
+    if (!roles || roles.length === 0) return true;
 
-    if (!roles) return true;
-    if (!token) return false;
-    const userDecode = this.jwtService.decode(token.split(' ')[1]);
+    const request = context.switchToHttp().getRequest();
+    const user = request['user'];
+    if (!user) return false;
 
-    if (userDecode && roles.includes(userDecode.role)) {
-      return true;
-    }
+    // No novo modelo não há campo 'role' no token.
+    // RolesGuard é mantido por compatibilidade; use @Permission() + PermissionGuard no lugar.
     return false;
   }
 }

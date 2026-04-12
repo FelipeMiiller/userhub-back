@@ -1,12 +1,11 @@
 import { IsEnum, IsOptional, IsUrl, IsString, IsNumberString } from 'class-validator';
-import ConfigValidator from './config.validator';
+import { configValidator } from './config.validator';
 
 
 enum Environment {
   Development = 'development',
   Production = 'production',
   Test = 'test',
-
 }
 
 export type SharedConfig = {
@@ -23,7 +22,6 @@ export type SharedConfig = {
 };
 
 class EnvironmentVariablesValidator {
-
   @IsEnum(Environment)
   @IsOptional()
   NODE_ENV: Environment = Environment.Development;
@@ -46,10 +44,9 @@ class EnvironmentVariablesValidator {
   @IsNumberString()
   @IsOptional()
   REDIS_TTL: string;
-
 }
 export const sharedConfigFactory = (): SharedConfig => {
-  ConfigValidator<EnvironmentVariablesValidator>(process.env, EnvironmentVariablesValidator);
+  configValidator<EnvironmentVariablesValidator>(process.env, EnvironmentVariablesValidator);
   return {
     environment: process.env.NODE_ENV as Environment,
     identityApi: {
@@ -62,4 +59,4 @@ export const sharedConfigFactory = (): SharedConfig => {
       ttl: parseInt(process.env.REDIS_TTL || '60', 10),
     },
   };
-}
+};

@@ -1,11 +1,10 @@
 import { ClassSerializerInterceptor, Module, ValidationPipe } from '@nestjs/common';
 import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE, Reflector } from '@nestjs/core';
 import { LoggingInterceptor } from '@hub/shared-lib/core/interceptors/logging.interceptor';
-import { LastActivityInterceptor } from '@hub/shared-lib/core/interceptors/last-activity.interceptor';
 import { TransformInterceptor } from '@hub/shared-lib/core/interceptors/transform.interceptor';
 import { HealthController } from '@hub/shared-lib/core/health/http/health-check.controller';
 import { ServerExceptionFilter } from '@hub/shared-lib/core/filters/service-exception.filter';
-import {IdentityModule } from '@hub/identity/identity.module';
+import { IdentityModule } from '@hub/identity/identity.module';
 import { ConfigModule } from '@nestjs/config';
 import { LoggerModule, LoggerService } from '@hub/shared-module/loggers';
 import { SharedCacheRedisModule } from '@hub/shared-module/cache';
@@ -23,10 +22,6 @@ import { SharedCacheRedisModule } from '@hub/shared-module/cache';
     {
       provide: APP_INTERCEPTOR,
       useClass: LoggingInterceptor,
-    },
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: LastActivityInterceptor,
     },
     {
       provide: APP_INTERCEPTOR,

@@ -1,7 +1,12 @@
 import { Expose } from 'class-transformer';
-import { IsDateString, IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
-import { Roles } from 'shared/modules/authorization/core/enum/role.enum';
-import { DefaultResponseDto } from 'shared/core/dto/response/default-response.dto';
+import {
+  IsBoolean,
+  IsEmail,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from 'class-validator';
+import { DefaultResponseDto } from '@hub/shared-lib';
 
 export class UserResponseDto extends DefaultResponseDto {
   @IsNotEmpty()
@@ -9,28 +14,14 @@ export class UserResponseDto extends DefaultResponseDto {
   @Expose()
   readonly Email: string;
 
-  @IsNotEmpty()
-  @IsString()
-  @Expose()
-  readonly FirstName: string;
-
   @IsOptional()
   @IsString()
   @Expose()
-  readonly LastName: string | null;
+  readonly FirstName?: string;
 
   @IsOptional()
-  @IsString()
+  @IsBoolean()
   @Expose()
-  readonly Photo: string | null;
+  readonly Status?: boolean;
 
-  @IsNotEmpty()
-  @IsEnum(Roles)
-  @Expose()
-  readonly Role: Roles;
-
-  @IsOptional()
-  @IsDateString()
-  @Expose()
-  readonly LastLoginAt?: Date | null;
 }

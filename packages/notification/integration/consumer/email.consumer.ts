@@ -3,13 +3,13 @@ import { Nack, RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import {
   EmailNotificationPayload,
   EmailTemplates,
-} from '@hub/shared-module/integration/notifications/email.notification';
+} from '@hub/shared-module/integrations';
 import {
   NotificationExchange,
   NotificationQueue,
-} from '@hub/shared-module/integration/notifications/notification.types';
+} from '@hub/shared-module/integrations';
 import { LoggerService } from '@hub/shared-module/loggers';
-import { MailService } from 'packages/notification/mail/core/mail.service';
+import { MailService } from '../../mail/core/mail.service';
 
 @Injectable()
 export class EmailConsumer {
@@ -61,8 +61,8 @@ export class EmailConsumer {
       // ✅ Sucesso: mensagem será automaticamente acknowledged
       this.loggerService.info(`✅ Mensagem processada com sucesso: ${template}`);
     } catch (error) {
-      this.loggerService.error(`❌ Erro ao processar mensagem: ${error.message}`, {
-        stack: error.stack,
+      this.loggerService.error(`Erro ao processar mensagem: ${(error as Error).message}`, {
+        stack: (error as Error).stack,
         template,
         payload,
       });

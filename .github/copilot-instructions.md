@@ -5,6 +5,7 @@
 Este repositório segue uma **arquitetura modular em NestJS**, com forte separação de responsabilidades, foco em domínio e boas práticas de engenharia de software.
 
 O GitHub Copilot **deve sempre respeitar**:
+
 - Os princípios arquiteturais definidos em `copilot-docs/docs`
 - As regras formais em `copilot-docs/rules`
 - As automações e padrões descritos em `copilot-docs/skills`
@@ -35,7 +36,6 @@ Antes de sugerir ou gerar código, consulte primeiro `copilot-docs/rules/archite
 ## 📏 Regras e Skills
 
 Consulte `copilot-docs/rules/architecture-rules.md` para as regras e a lista de skills disponíveis; esse arquivo contém os detalhes e a precedência das regras.
-
 
 ---
 
@@ -70,6 +70,7 @@ Ao gerar código NestJS:
 ## 🚫 Restrições
 
 O Copilot **não deve**:
+
 - Introduzir frameworks ou bibliotecas sem justificativa arquitetural
 - Quebrar regras definidas nos arquivos `rules`
 - Criar acoplamento direto entre módulos de domínio distintos

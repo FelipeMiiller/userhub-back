@@ -34,4 +34,4 @@ import { redisStore } from 'cache-manager-redis-yet';
   providers: [],
   exports: [CacheModule],
 })
-export class SharedCacheRedisModule { }
+export class SharedCacheRedisModule {}

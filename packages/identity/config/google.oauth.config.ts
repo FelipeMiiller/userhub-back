@@ -2,7 +2,6 @@ import { registerAs } from '@nestjs/config';
 import { IsString, IsUrl } from 'class-validator';
 import { configValidator } from '@hub/shared-module/config';
 
-
 class EnvironmentVariablesValidator {
   @IsUrl({ require_tld: false })
   FRONTEND_DOMAIN: string;

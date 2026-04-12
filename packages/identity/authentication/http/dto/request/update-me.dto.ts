@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsUrl, IsBoolean } from 'class-validator';
+import { IsOptional, IsString, IsUrl } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UpdateMeRequestDto {
@@ -22,8 +22,5 @@ export class UpdateMeRequestDto {
   @IsOptional()
   readonly Photo?: string;
 
-  @ApiPropertyOptional({ description: 'Status do usuário (ativo/inativo)' })
-  @IsBoolean()
-  @IsOptional()
-  readonly Status?: boolean;
+
 }

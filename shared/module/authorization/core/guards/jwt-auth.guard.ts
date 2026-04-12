@@ -36,6 +36,9 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       if (!payload.status) {
         throw new UnauthorizedException('User inactive');
       }
+      if (payload.jti && (await this.authService.isTokenRevoked(payload.jti))) {
+        throw new UnauthorizedException('Token revoked');
+      }
     } catch (error) {
       throw new UnauthorizedException('Invalid token');
     }

@@ -1,4 +1,3 @@
-
 export class DatabaseException extends Error {
   public readonly code?: string;
   public readonly details?: Record<string, unknown>;

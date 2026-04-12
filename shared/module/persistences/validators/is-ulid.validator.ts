@@ -9,7 +9,7 @@ import { isValid as isValidULID } from 'ulid';
 
 @ValidatorConstraint({ async: false })
 export class IsULIDConstraint implements ValidatorConstraintInterface {
-  validate(value: any, args: ValidationArguments) {
+  validate(value: any, _: ValidationArguments) {
     if (typeof value !== 'string') {
       return false;
     }

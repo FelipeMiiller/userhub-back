@@ -2,7 +2,7 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "composite": true,
-    "outDir": "../../.tsbuild/shared/module",
+    "outDir": "../../../.tsbuild/shared/module",
     "rootDir": "."
   },
   "include": ["**/*.ts"],

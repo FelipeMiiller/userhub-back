@@ -50,19 +50,19 @@ export default registerAs('mail', (): MailConfig => {
   validateConfig(process.env, EnvironmentVariablesValidator);
 
   return {
-    frontendDomain: process.env.FRONTEND_DOMAIN,
+    frontendDomain: process.env.FRONTEND_DOMAIN as string,
     transport: {
-      host: process.env.MAIL_HOST,
-      port: parseInt(process.env.MAIL_PORT, 10),
+      host: process.env.MAIL_HOST as string,
+      port: parseInt(process.env.MAIL_PORT as string, 10),
       secure: process.env.MAIL_SECURE === 'true',
       auth: {
-        user: process.env.MAIL_USER,
-        pass: process.env.MAIL_PASSWORD,
+        user: process.env.MAIL_USER as string,
+        pass: process.env.MAIL_PASSWORD as string,
       },
     },
     from: {
-      name: process.env.MAIL_FROM_NAME,
-      address: process.env.MAIL_FROM_ADDRESS,
+      name: process.env.MAIL_FROM_NAME as string,
+      address: process.env.MAIL_FROM_ADDRESS as string,
     },
   };
 });

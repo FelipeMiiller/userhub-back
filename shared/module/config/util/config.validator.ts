@@ -19,5 +19,3 @@ export function configValidator<T extends object>(
   }
   return validatedConfig;
 }
-
-

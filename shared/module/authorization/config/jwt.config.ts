@@ -1,7 +1,7 @@
 import { registerAs } from '@nestjs/config';
 import type { JwtModuleOptions } from '@nestjs/jwt';
 import { IsString } from 'class-validator';
-import ConfigValidator from '@hub/shared-lib/core/validators/config.validator';
+import { configValidator } from '../../config/util/config.validator';
 
 class EnvironmentVariablesValidator {
   @IsString()
@@ -12,11 +12,11 @@ class EnvironmentVariablesValidator {
 }
 
 export default registerAs('jwt', (): JwtModuleOptions => {
-  ConfigValidator(process.env, EnvironmentVariablesValidator);
+  configValidator(process.env, EnvironmentVariablesValidator);
   return {
     secret: process.env.JWT_SECRET || 'secret',
     signOptions: {
-      expiresIn: process.env.JWT_EXPIRES_IN || '60s',
+      expiresIn: (process.env.JWT_EXPIRES_IN || '60s') as `${number}${'s' | 'm' | 'h' | 'd'}`,
       algorithm: 'HS256',
     },
   };

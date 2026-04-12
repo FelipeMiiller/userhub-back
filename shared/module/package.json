@@ -4,11 +4,13 @@
   "private": true,
   "exports": {
     "./authorization": "./authorization/index.ts",
+    "./authorization/config/jwt.config": "./authorization/config/jwt.config.ts",
     "./cache": "./cache/index.ts",
     "./config": "./config/index.ts",
     "./event": "./event/index.ts",
     "./http-client": "./http-client/index.ts",
     "./integrations": "./integrations/index.ts",
+    "./integrations/config/rabbitmq.config": "./integrations/config/rabbitmq.config.ts",
     "./loggers": "./loggers/index.ts",
     "./persistences": "./persistences/index.ts"
   },
@@ -16,6 +18,9 @@
     "*": {
       "authorization": [
         "./authorization/index.ts"
+      ],
+      "authorization/config/jwt.config": [
+        "./authorization/config/jwt.config.ts"
       ],
       "cache": [
         "./cache/index.ts"
@@ -31,6 +36,9 @@
       ],
       "integrations": [
         "./integrations/index.ts"
+      ],
+      "integrations/config/rabbitmq.config": [
+        "./integrations/config/rabbitmq.config.ts"
       ],
       "loggers": [
         "./loggers/index.ts"

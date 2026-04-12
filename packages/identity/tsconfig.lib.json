@@ -5,12 +5,8 @@
     "outDir": "../../.tsbuild/packages/identity",
     "rootDir": "."
   },
-  "include": [
-    "**/*.ts" ],
-  "exclude": [
-    "jest.config.ts",
-    "**/*.spec.ts"
-  ],
+  "include": ["**/*.ts"],
+  "exclude": ["jest.config.ts", "**/*.spec.ts", "**/*.e2e-spec.ts"],
   "references": [
     {
       "path": "../../shared/lib/tsconfig.lib.json"

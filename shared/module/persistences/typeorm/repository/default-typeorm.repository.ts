@@ -17,7 +17,6 @@ import {
 import { DatabaseException } from '../exeption/database.exception';
 import { DefaultTypeOrmEntity } from '../entity/default-typeorm.entity';
 
-
 interface PostgresError {
   code: string;
   detail?: string;
@@ -87,9 +86,9 @@ export abstract class DefaultTypeOrmRepository<T extends DefaultTypeOrmEntity<T>
 
   async update(id: string, entity: DeepPartial<T>, options?: SaveOptions): Promise<T | null> {
     const updateEntity = await this.repository.preload({
-      id: id,
+      Id: id,
       ...entity,
-    });
+    } as DeepPartial<T>);
     if (!updateEntity) {
       return null;
     }
@@ -107,10 +106,10 @@ export abstract class DefaultTypeOrmRepository<T extends DefaultTypeOrmEntity<T>
       this.handlePostgresError(error);
     }
   }
-  async findOneById(id: string, relations?: string[]): Promise<T | null> {
+  async findOneById(Id: string, relations?: string[]): Promise<T | null> {
     try {
       return await this.repository.findOne({
-        where: { id } as FindOptionsWhere<T>,
+        where: { Id } as FindOptionsWhere<T>,
         relations,
       });
     } catch (error) {
@@ -133,10 +132,10 @@ export abstract class DefaultTypeOrmRepository<T extends DefaultTypeOrmEntity<T>
       this.handlePostgresError(error);
     }
   }
-  async exists(id: string): Promise<boolean> {
+  async exists(Id: string): Promise<boolean> {
     try {
       return await this.repository.exists({
-        where: { id } as FindOptionsWhere<T>,
+        where: { Id } as FindOptionsWhere<T>,
       });
     } catch (error) {
       this.handlePostgresError(error);

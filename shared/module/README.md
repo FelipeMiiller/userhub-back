@@ -1,8 +1,9 @@
 # Módulos de Infraestrutura Compartilhada
 
 Módulos de infraestrutura compartilhada são módulos que são utilizados por mais de um módulo da aplicação. Eles são responsáveis por prover funcionalidades comuns a todos os módulos, como por exemplo, a conexão com o banco de dados, a conexão com serviços externos, a autenticação, a autorização, etc.
- 
+
 Veja também: [packages/README.md](../../README.md) — documento principal que explica as delimitações entre `lib` e `modules`.
+
 ## Convenção e boas práticas
 
 - Localização: coloque módulos reusáveis em `packages/shared/modules/<module-name>`.
@@ -15,10 +16,10 @@ Veja também: [packages/README.md](../../README.md) — documento principal que 
 ## Estrutura recomendada
 
 - `packages/shared/modules/<module>/`:
-	- `index.ts` (barrel)
-	- `<module>.module.ts` (p. ex. `cache-redis.module.ts`)
-	- `config/` (opcional)
-	- `core/`, `http/`, `persistence/` (quando aplicável)
+  - `index.ts` (barrel)
+  - `<module>.module.ts` (p. ex. `cache-redis.module.ts`)
+  - `config/` (opcional)
+  - `core/`, `http/`, `persistence/` (quando aplicável)
 
 ## Como importar em um AppModule
 
@@ -28,10 +29,10 @@ No `AppModule` do app (ex.: `apps/identity/app.module.ts`), importe o módulo co
 import { SharedCacheRedisModule } from 'packages/shared/modules/cache';
 
 @Module({
-	imports: [
-		SharedCacheRedisModule,
-		// ...outros módulos
-	],
+  imports: [
+    SharedCacheRedisModule,
+    // ...outros módulos
+  ],
 })
 export class AppModule {}
 ```

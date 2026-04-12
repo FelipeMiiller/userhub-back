@@ -4,13 +4,20 @@
   "private": true,
   "exports": {
     ".": "./index.ts",
-    "./test": "./test/index.ts"
+    "./test": "./test/index.ts",
+    "./utils/validate-config": "./utils/validate-config.ts"
   },
   "typesVersions": {
     "*": {
-      ".": ["./index.ts"],
-      "test": ["./test/index.ts"]
+      ".": [
+        "./index.ts"
+      ],
+      "test": [
+        "./test/index.ts"
+      ],
+      "utils/validate-config": [
+        "./utils/validate-config.ts"
+      ]
     }
   }
 }
-

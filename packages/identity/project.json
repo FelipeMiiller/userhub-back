@@ -42,22 +42,22 @@
     "db:generate": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "ts-node -r tsconfig-paths/register -P {projectRoot}/tsconfig.lib.json ./node_modules/typeorm/cli.js migration:generate {projectRoot}/persistence/migration/migration",
-        "args": ["-d {projectRoot}/shared/persistence/typeorm-datasource.ts"]
+        "command": "ts-node -r tsconfig-paths/register -P {projectRoot}/tsconfig.lib.json ./node_modules/typeorm/cli.js migration:generate {projectRoot}/persistence/migrations/Migration -d {projectRoot}/persistence/typeorm-datasource.ts",
+        "cwd": "."
       }
     },
     "db:migrate": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "ts-node -r tsconfig-paths/register -P {projectRoot}/tsconfig.lib.json ./node_modules/typeorm/cli.js migration:run",
-        "args": ["-d {projectRoot}/shared/persistence/typeorm-datasource.ts"]
+        "command": "ts-node -r tsconfig-paths/register -P {projectRoot}/tsconfig.lib.json ./node_modules/typeorm/cli.js migration:run -d {projectRoot}/persistence/typeorm-datasource.ts",
+        "cwd": "."
       }
     },
     "db:drop": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "ts-node -r tsconfig-paths/register -P {projectRoot}/tsconfig.lib.json ./node_modules/typeorm/cli.js schema:drop",
-        "args": ["-d {projectRoot}/shared/persistence/typeorm-datasource.ts"]
+        "command": "ts-node -r tsconfig-paths/register -P {projectRoot}/tsconfig.lib.json ./node_modules/typeorm/cli.js schema:drop -d {projectRoot}/persistence/typeorm-datasource.ts",
+        "cwd": "."
       }
     }
   }

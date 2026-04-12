@@ -34,7 +34,7 @@ export class PushNotificationService {
     private readonly httpClient: HttpClient,
     private readonly logger: LoggerService,
   ) {
-    this.config = this.configService.get<NtfyConfig>('ntfy');
+    this.config = this.configService.get<NtfyConfig>('ntfy') as NtfyConfig;
   }
 
   async sendPushNotification(options: SendPushNotificationOptions): Promise<void> {
@@ -62,7 +62,7 @@ export class PushNotificationService {
       await this.httpClient.post(url, message, { headers });
       this.logger.info(`Push notification sent successfully to topic: ${topic}`);
     } catch (error) {
-      this.logger.error(`Failed to send push notification to topic ${topic}:`, error);
+      this.logger.error(`Failed to send push notification to topic ${topic}:`, { details: String(error) });
       throw error;
     }
   }

@@ -1,7 +1,7 @@
 import { registerAs } from '@nestjs/config';
 import { IncomingWebhookDefaultArguments } from '@slack/webhook';
 import { IsOptional, IsString, IsUrl } from 'class-validator';
-
+import { configValidator } from '../config';
 
 class EnvironmentVariablesValidator {
   @IsUrl()
@@ -25,7 +25,7 @@ export type LoggerConfig = {
   slack: { url?: string; defaults?: IncomingWebhookDefaultArguments };
 };
 export default registerAs('logger', (): LoggerConfig => {
-  ConfigValidator(process.env, EnvironmentVariablesValidator);
+  configValidator(process.env, EnvironmentVariablesValidator);
   return {
     slack: {
       url: process.env.SLACK_WEBHOOK_URL,

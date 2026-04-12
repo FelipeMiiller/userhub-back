@@ -4,10 +4,7 @@ import DefaultChangelogRenderer from 'nx/release/changelog-renderer';
 import { ChangelogChange } from 'nx/src/command-line/release/changelog';
 
 export default class CustomChangelogRenderer extends DefaultChangelogRenderer {
-  protected filterChanges(
-    changes: ChangelogChange[],
-    project: string | null
-  ): ChangelogChange[] {
+  protected filterChanges(changes: ChangelogChange[], project: string | null): ChangelogChange[] {
     const graphCacheFileName = `.nx-cache.graph.${project}.output.json`;
     /**
      * Gets the full graph of the project and its dependencies
@@ -16,7 +13,7 @@ export default class CustomChangelogRenderer extends DefaultChangelogRenderer {
       `nx graph --focus ${project} --open=false --file=${graphCacheFileName}`,
       {
         encoding: 'utf-8',
-      }
+      },
     );
     console.log('NX Graph temp file created:', output);
     const graph = fs.readFileSync(graphCacheFileName, 'utf-8');
@@ -38,7 +35,7 @@ export default class CustomChangelogRenderer extends DefaultChangelogRenderer {
         continue;
       }
       const afftectedProject = change.affectedProjects.find((project) =>
-        relevantProjects.includes(project)
+        relevantProjects.includes(project),
       );
       if (afftectedProject) {
         affectedProjects.add(afftectedProject);
@@ -50,9 +47,7 @@ export default class CustomChangelogRenderer extends DefaultChangelogRenderer {
       if (change.scope === 'release') return false;
 
       if (change.affectedProjects === '*') return true;
-      return change.affectedProjects.some((project) =>
-        relevantProjects.includes(project)
-      );
+      return change.affectedProjects.some((project) => relevantProjects.includes(project));
     });
     fs.unlinkSync(graphCacheFileName);
     return filteredChanges;

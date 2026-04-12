@@ -76,7 +76,7 @@ export class MicroserviceExceptionFilter implements RpcExceptionFilter<RpcExcept
       message = exception.message;
       context = exception.context;
       stackTrace = exception.stack;
-      details = exception.details;
+      details = exception.details ?? {};
 
       errorResponse.message = message;
     } else if (exception instanceof Error) {

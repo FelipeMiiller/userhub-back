@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
- 
+
 import { ConfigService as NestConfigService, Path, PathValue } from '@nestjs/config';
 import { SharedConfig } from '../util/shared.config';
 

@@ -1,13 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
-import { LoggerService } from '@hub/shared-module/loggers/index';
-import { NotificationExchange, NotificationQueue, EmailNotificationPayload, EmailTemplates } from '@hub/shared-module/integrations/index';
+import {
+  EmailNotificationPayload,
+  EmailTemplates,
+  NotificationExchange,
+  NotificationQueue,
+} from '@hub/shared-module/integrations';
+import { LoggerService } from '@hub/shared-module/loggers';
+
 @Injectable()
 export class EmailProducer {
   constructor(
     private readonly amqpConnection: AmqpConnection,
     private readonly loggerService: LoggerService,
-  ) { }
+  ) {}
   private async sendEmailNotification(payload: EmailNotificationPayload): Promise<void> {
     try {
       await this.amqpConnection.publish(
@@ -21,11 +27,13 @@ export class EmailProducer {
       );
 
       this.loggerService.info('Email notification sent to queue:', {
-        payload:  payload.payload,
+        payload: payload.payload,
         template: payload.template,
-      } as EmailNotificationPayload);
-    } catch (error ) {
-      this.loggerService.error('Failed to send email notification:', error);
+      });
+    } catch (error) {
+      this.loggerService.error('Failed to send email notification:', {
+        details: error instanceof Error ? { message: error.message } : undefined,
+      });
       throw error;
     }
   }

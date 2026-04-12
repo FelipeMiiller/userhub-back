@@ -1,5 +1,3 @@
-
-
 //dto
 export * from './core/dto/response/default-response.dto';
 
@@ -17,7 +15,6 @@ export * from './core/health/http/health-check.controller';
 //interceptors
 export * from './core/interceptors/logging.interceptor';
 export * from './core/interceptors/transform.interceptor';
-export * from './core/interceptors/last-activity.interceptor';
 
 //pipes
 export * from './core/pipes/validation.pipe';
