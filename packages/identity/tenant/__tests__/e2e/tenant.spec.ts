@@ -1,7 +1,8 @@
 import request from 'supertest';
 import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
-import { createIdentityApp } from '../../../__tests__/e2e/setup';
+import { IdentityPermissions } from '@hub/shared-module/authorization';
+import { createIdentityApp, grantPermissionsViaTable } from '../../../__tests__/e2e/setup';
 
 jest.mock('nodemailer', () => ({
   createTransport: jest.fn().mockReturnValue({
@@ -10,7 +11,7 @@ jest.mock('nodemailer', () => ({
 }));
 
 /**
- * Concede todas as permissões necessárias via ExtraPermissions direto no banco,
+ * Concede as permissões indicadas via AccountTenantPermissions direto no banco,
  * depois re-loga para obter um token com os grants embutidos.
  */
 async function grantAllPermissionsAndRelogin(
@@ -20,26 +21,23 @@ async function grantAllPermissionsAndRelogin(
   tenantId: string,
   email: string,
   password: string,
+  extraPermissions?: string[],
 ): Promise<string> {
   const permissions = [
-    'identity.tenant.view',
-    'identity.tenant.update',
-    'identity.account-tenant.list',
-    'identity.account-tenant.create',
-    'identity.account-tenant.delete',
-    'identity.tenant-role.list',
-    'identity.tenant-role.view',
-    'identity.tenant-role.create',
-    'identity.tenant-role.update',
-    'identity.tenant-role.delete',
+    IdentityPermissions.TENANT_VIEW,
+    IdentityPermissions.TENANT_UPDATE,
+    IdentityPermissions.ACCOUNT_TENANT_LIST,
+    IdentityPermissions.ACCOUNT_TENANT_CREATE,
+    IdentityPermissions.ACCOUNT_TENANT_DELETE,
+    IdentityPermissions.TENANT_ROLE_LIST,
+    IdentityPermissions.TENANT_ROLE_VIEW,
+    IdentityPermissions.TENANT_ROLE_CREATE,
+    IdentityPermissions.TENANT_ROLE_UPDATE,
+    IdentityPermissions.TENANT_ROLE_DELETE,
+    ...(extraPermissions ?? []),
   ];
 
-  await dataSource.query(
-    `UPDATE "AccountTenants"
-     SET "ExtraPermissions" = $1::jsonb
-     WHERE "AccountId" = $2 AND "TenantId" = $3`,
-    [JSON.stringify({ grant: permissions }), accountId, tenantId],
-  );
+  await grantPermissionsViaTable(dataSource, accountId, tenantId, permissions);
 
   const loginRes = await request(app.getHttpServer())
     .post('/auth/signin')
@@ -101,7 +99,12 @@ describe('Onboarding & Tenant (e2e)', () => {
 
       // Concede permissões e re-loga para token com claims corretos
       accessToken = await grantAllPermissionsAndRelogin(
-        app, dataSource, accountId, tenantId, email, password,
+        app,
+        dataSource,
+        accountId,
+        tenantId,
+        email,
+        password,
       );
     });
 
@@ -140,18 +143,16 @@ describe('Onboarding & Tenant (e2e)', () => {
       expect(res.body.data).toHaveProperty('Id', tenantId);
     });
 
-    it('retorna 404 para tenant inexistente', async () => {
+    it('retorna 403 para tenant inexistente (guard rejeita antes do service)', async () => {
       await request(app.getHttpServer())
         .get('/tenants/00000000-0000-0000-0000-000000000000')
         .set('Authorization', `bearer ${accessToken}`)
         .set('x-tenant-id', tenantId)
-        .expect(404);
+        .expect(403);
     });
 
     it('retorna 401 sem autenticação', async () => {
-      await request(app.getHttpServer())
-        .get(`/tenants/${tenantId}`)
-        .expect(401);
+      await request(app.getHttpServer()).get(`/tenants/${tenantId}`).expect(401);
     });
   });
 
@@ -167,13 +168,13 @@ describe('Onboarding & Tenant (e2e)', () => {
       expect(res.body.data.Name).toBe('Tenant Atualizado');
     });
 
-    it('retorna 404 para tenant inexistente', async () => {
+    it('retorna 403 para tenant inexistente (guard rejeita antes do service)', async () => {
       await request(app.getHttpServer())
         .patch('/tenants/00000000-0000-0000-0000-000000000000')
         .set('Authorization', `bearer ${accessToken}`)
         .set('x-tenant-id', tenantId)
         .send({ Name: 'Não Existe' })
-        .expect(404);
+        .expect(403);
     });
   });
 
@@ -244,7 +245,12 @@ describe('Onboarding & Tenant (e2e)', () => {
     beforeAll(async () => {
       const signupRes = await request(app.getHttpServer())
         .post('/auth/signup')
-        .send({ Email: memberEmail, Password: 'DelMember@123', FirstName: 'Del', LastName: 'Member' })
+        .send({
+          Email: memberEmail,
+          Password: 'DelMember@123',
+          FirstName: 'Del',
+          LastName: 'Member',
+        })
         .expect(201);
       memberAccountId = signupRes.body.data.Id;
 
@@ -309,6 +315,263 @@ describe('Onboarding & Tenant (e2e)', () => {
         .set('x-tenant-id', tenantId)
         .send({ Description: 'Sem nome' })
         .expect(400);
+    });
+  });
+
+  describe('Tenant Modules /tenants/:tenantId/modules', () => {
+    let systemModuleId: string;
+
+    beforeAll(async () => {
+      // Garante permissões de tenant-module no token
+      accessToken = await grantAllPermissionsAndRelogin(
+        app,
+        dataSource,
+        accountId,
+        tenantId,
+        email,
+        password,
+        [
+          IdentityPermissions.TENANT_MODULE_LIST,
+          IdentityPermissions.TENANT_MODULE_CREATE,
+          IdentityPermissions.TENANT_MODULE_DELETE,
+        ],
+      );
+
+      // Cria um SystemModule diretamente no banco para os testes
+      const result = await dataSource.query(
+        `INSERT INTO "SystemModules" ("Id", "Slug", "Name", "Description", "Active", "CreatedAt", "UpdatedAt")
+         VALUES (gen_random_uuid(), $1, $2, $3, true, now(), now())
+         RETURNING "Id"`,
+        [`e2e-module-${Date.now()}`, 'E2E Test Module', 'Módulo para testes e2e'],
+      );
+      systemModuleId = result[0].Id;
+    });
+
+    afterAll(async () => {
+      await dataSource.query(`DELETE FROM "TenantModules" WHERE "TenantId" = $1`, [tenantId]);
+      await dataSource.query(`DELETE FROM "SystemModules" WHERE "Id" = $1`, [systemModuleId]);
+    });
+
+    describe('GET /tenants/:tenantId/modules', () => {
+      it('retorna lista vazia inicialmente', async () => {
+        const res = await request(app.getHttpServer())
+          .get(`/tenants/${tenantId}/modules`)
+          .set('Authorization', `bearer ${accessToken}`)
+          .set('x-tenant-id', tenantId)
+          .expect(200);
+
+        expect(Array.isArray(res.body.data)).toBe(true);
+      });
+
+      it('retorna 401 sem autenticação', async () => {
+        await request(app.getHttpServer()).get(`/tenants/${tenantId}/modules`).expect(401);
+      });
+    });
+
+    describe('POST /tenants/:tenantId/modules', () => {
+      it('habilita um módulo para o tenant', async () => {
+        const res = await request(app.getHttpServer())
+          .post(`/tenants/${tenantId}/modules`)
+          .set('Authorization', `bearer ${accessToken}`)
+          .set('x-tenant-id', tenantId)
+          .send({ SystemModuleId: systemModuleId })
+          .expect(201);
+
+        expect(res.body.data).toHaveProperty('TenantId', tenantId);
+        expect(res.body.data).toHaveProperty('SystemModuleId', systemModuleId);
+        expect(res.body.data).toHaveProperty('Status', 'active');
+      });
+
+      it('retorna 409 se o módulo já está ativo para o tenant', async () => {
+        await request(app.getHttpServer())
+          .post(`/tenants/${tenantId}/modules`)
+          .set('Authorization', `bearer ${accessToken}`)
+          .set('x-tenant-id', tenantId)
+          .send({ SystemModuleId: systemModuleId })
+          .expect(409);
+      });
+
+      it('retorna 404 para SystemModule inexistente', async () => {
+        await request(app.getHttpServer())
+          .post(`/tenants/${tenantId}/modules`)
+          .set('Authorization', `bearer ${accessToken}`)
+          .set('x-tenant-id', tenantId)
+          .send({ SystemModuleId: '00000000-0000-0000-0000-000000000000' })
+          .expect(404);
+      });
+
+      it('retorna 400 para body inválido', async () => {
+        await request(app.getHttpServer())
+          .post(`/tenants/${tenantId}/modules`)
+          .set('Authorization', `bearer ${accessToken}`)
+          .set('x-tenant-id', tenantId)
+          .send({})
+          .expect(400);
+      });
+    });
+
+    describe('DELETE /tenants/:tenantId/modules/:moduleId', () => {
+      it('desabilita o módulo do tenant', async () => {
+        await request(app.getHttpServer())
+          .delete(`/tenants/${tenantId}/modules/${systemModuleId}`)
+          .set('Authorization', `bearer ${accessToken}`)
+          .set('x-tenant-id', tenantId)
+          .expect(204);
+      });
+
+      it('retorna 404 para módulo não habilitado', async () => {
+        await request(app.getHttpServer())
+          .delete(`/tenants/${tenantId}/modules/00000000-0000-0000-0000-000000000000`)
+          .set('Authorization', `bearer ${accessToken}`)
+          .set('x-tenant-id', tenantId)
+          .expect(404);
+      });
+    });
+  });
+
+  describe('Role Permissions /tenants/:tenantId/roles/:id/permissions', () => {
+    let roleId: string;
+    let permissionId: string;
+    let systemModuleId: string;
+
+    beforeAll(async () => {
+      // Cria SystemModule e habilita-o no tenant
+      const moduleResult = await dataSource.query(
+        `INSERT INTO "SystemModules" ("Id", "Slug", "Name", "Description", "Active", "CreatedAt", "UpdatedAt")
+         VALUES (gen_random_uuid(), $1, $2, $3, true, now(), now())
+         RETURNING "Id"`,
+        [
+          `e2e-perm-module-${Date.now()}`,
+          'E2E Permission Module',
+          'Módulo para testes de permissão',
+        ],
+      );
+      systemModuleId = moduleResult[0].Id;
+
+      // Habilita módulo no tenant
+      await dataSource.query(
+        `INSERT INTO "TenantModules" ("Id", "TenantId", "SystemModuleId", "Status", "CreatedAt", "UpdatedAt")
+         VALUES (gen_random_uuid(), $1, $2, 'active', now(), now())`,
+        [tenantId, systemModuleId],
+      );
+
+      // Cria SystemResource para a permission
+      const resourceResult = await dataSource.query(
+        `INSERT INTO "SystemResources" ("Id", "Slug", "Name", "ModuleId", "CreatedAt", "UpdatedAt")
+         VALUES (gen_random_uuid(), $1, $2, $3, now(), now())
+         RETURNING "Id"`,
+        [`e2e-resource-${Date.now()}`, 'E2E Resource', systemModuleId],
+      );
+      const resourceId = resourceResult[0].Id;
+
+      // Cria Permission
+      const permResult = await dataSource.query(
+        `INSERT INTO "Permissions" ("Id", "Name", "ModuleId", "ResourceId", "Action", "CreatedAt", "UpdatedAt")
+         VALUES (gen_random_uuid(), $1, $2, $3, 'read', now(), now())
+         RETURNING "Id"`,
+        [`e2e.perm-module-${Date.now()}.resource.read`, systemModuleId, resourceId],
+      );
+      permissionId = permResult[0].Id;
+
+      // Cria role para os testes de permissão
+      const roleRes = await request(app.getHttpServer())
+        .post(`/tenants/${tenantId}/roles`)
+        .set('Authorization', `bearer ${accessToken}`)
+        .set('x-tenant-id', tenantId)
+        .send({ Name: `PermRole-${Date.now()}`, Description: 'Role para testes de permissão' })
+        .expect(201);
+      roleId = roleRes.body.data.Id;
+    });
+
+    afterAll(async () => {
+      await dataSource.query(`DELETE FROM "TenantRolePermissions" WHERE "TenantRoleId" = $1`, [
+        roleId,
+      ]);
+      await dataSource.query(`DELETE FROM "TenantRoles" WHERE "Id" = $1`, [roleId]);
+      await dataSource.query(`DELETE FROM "Permissions" WHERE "Id" = $1`, [permissionId]);
+      await dataSource.query(
+        `DELETE FROM "TenantModules" WHERE "TenantId" = $1 AND "SystemModuleId" = $2`,
+        [tenantId, systemModuleId],
+      );
+      await dataSource.query(`DELETE FROM "SystemModules" WHERE "Id" = $1`, [systemModuleId]);
+    });
+
+    describe('GET /tenants/:tenantId/roles/:id/permissions', () => {
+      it('lista permissões do role (vazio inicialmente)', async () => {
+        const res = await request(app.getHttpServer())
+          .get(`/tenants/${tenantId}/roles/${roleId}/permissions`)
+          .set('Authorization', `bearer ${accessToken}`)
+          .set('x-tenant-id', tenantId)
+          .expect(200);
+
+        expect(Array.isArray(res.body.data)).toBe(true);
+        expect(res.body.data).toHaveLength(0);
+      });
+    });
+
+    describe('POST /tenants/:tenantId/roles/:id/permissions', () => {
+      it('adiciona permissão ao role', async () => {
+        const res = await request(app.getHttpServer())
+          .post(`/tenants/${tenantId}/roles/${roleId}/permissions`)
+          .set('Authorization', `bearer ${accessToken}`)
+          .set('x-tenant-id', tenantId)
+          .send({ PermissionId: permissionId, AllowedLevel: 1, Mode: 'allow' })
+          .expect(201);
+
+        expect(res.body.data).toHaveProperty('TenantRoleId', roleId);
+        expect(res.body.data).toHaveProperty('PermissionId', permissionId);
+      });
+
+      it('retorna 404 para permissão inexistente', async () => {
+        await request(app.getHttpServer())
+          .post(`/tenants/${tenantId}/roles/${roleId}/permissions`)
+          .set('Authorization', `bearer ${accessToken}`)
+          .set('x-tenant-id', tenantId)
+          .send({
+            PermissionId: '00000000-0000-0000-0000-000000000000',
+            AllowedLevel: 1,
+            Mode: 'allow',
+          })
+          .expect(404);
+      });
+
+      it('retorna 403 se módulo não está habilitado no tenant', async () => {
+        // Desabilita o módulo temporariamente
+        await dataSource.query(
+          `UPDATE "TenantModules" SET "Status" = 'inactive' WHERE "TenantId" = $1 AND "SystemModuleId" = $2`,
+          [tenantId, systemModuleId],
+        );
+
+        await request(app.getHttpServer())
+          .post(`/tenants/${tenantId}/roles/${roleId}/permissions`)
+          .set('Authorization', `bearer ${accessToken}`)
+          .set('x-tenant-id', tenantId)
+          .send({ PermissionId: permissionId, AllowedLevel: 1, Mode: 'allow' })
+          .expect(403);
+
+        // Reativa
+        await dataSource.query(
+          `UPDATE "TenantModules" SET "Status" = 'active' WHERE "TenantId" = $1 AND "SystemModuleId" = $2`,
+          [tenantId, systemModuleId],
+        );
+      });
+    });
+
+    describe('DELETE /tenants/:tenantId/roles/:roleId/permissions/:id', () => {
+      it('remove permissão do role', async () => {
+        const perms = await dataSource.query(
+          `SELECT "Id" FROM "TenantRolePermissions" WHERE "TenantRoleId" = $1 AND "PermissionId" = $2`,
+          [roleId, permissionId],
+        );
+        expect(perms.length).toBeGreaterThan(0);
+        const rolePermId = perms[0].Id;
+
+        await request(app.getHttpServer())
+          .delete(`/tenants/${tenantId}/roles/${roleId}/permissions/${rolePermId}`)
+          .set('Authorization', `bearer ${accessToken}`)
+          .set('x-tenant-id', tenantId)
+          .expect(204);
+      });
     });
   });
 });

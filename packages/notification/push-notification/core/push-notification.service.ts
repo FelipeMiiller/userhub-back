@@ -62,7 +62,9 @@ export class PushNotificationService {
       await this.httpClient.post(url, message, { headers });
       this.logger.info(`Push notification sent successfully to topic: ${topic}`);
     } catch (error) {
-      this.logger.error(`Failed to send push notification to topic ${topic}:`, { details: String(error) });
+      this.logger.error(`Failed to send push notification to topic ${topic}:`, {
+        details: String(error),
+      });
       throw error;
     }
   }

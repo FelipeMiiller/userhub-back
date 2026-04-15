@@ -1,4 +1,8 @@
-import { AccountRepository, CreateAccountWithProfileInput, AccountMeProjection } from '../../../persistence/repository/account.typeorm.repository';
+import {
+  AccountRepository,
+  CreateAccountWithProfileInput,
+  AccountMeProjection,
+} from '../../../persistence/repository/account.typeorm.repository';
 import { LoggerService } from '@hub/shared-module/loggers';
 import { Account } from '../../../persistence/entities/accounts.entities';
 import { Profile } from '../../../persistence/entities/profiles.entities';
@@ -6,7 +10,11 @@ import { ProfileRepository } from '../../../persistence/repository/profile.typeo
 import { UpdateMeRequestDto } from '../../http/dto/request/update-me.dto';
 import * as argon2 from 'argon2';
 import { Injectable } from '@nestjs/common';
-import { AccountTenantService, CreateTenantWithOwnerInput, TenantWithMembership } from '../../../tenant/core/services/account-tenant.service';
+import {
+  AccountTenantService,
+  CreateTenantWithOwnerInput,
+  TenantWithMembership,
+} from '../../../tenant/core/services/account-tenant.service';
 
 @Injectable()
 export class AccountService {
@@ -16,16 +24,11 @@ export class AccountService {
     private readonly profileRepository: ProfileRepository,
     private readonly accountTenantService: AccountTenantService,
     private readonly loggerService: LoggerService,
-
   ) {
     this.loggerService.contextName = AccountService.name;
   }
 
-  async create(data: {
-    Email: string;
-    Password: string;
-    Provider?: string;
-  }): Promise<Account> {
+  async create(data: { Email: string; Password: string; Provider?: string }): Promise<Account> {
     const account = await this.accountRepository.create({
       Email: data.Email,
       Password: await argon2.hash(data.Password),
@@ -93,19 +96,13 @@ export class AccountService {
     await this.accountRepository.resetPassword(id, hashed);
   }
 
-
   // ─── profile ──────────────────────────────────────────────────────────────
   async findProfileByAccountId(accountId: string): Promise<Profile | null> {
     return this.profileRepository.findOneByAccountId(accountId);
   }
-
 
   // ─── account-tenant ───────────────────────────────────────────────────────
   async createOnboardingTenant(input: CreateTenantWithOwnerInput): Promise<TenantWithMembership> {
     return this.accountTenantService.createTenantWithOwner(input);
   }
 }
-
-
-
-

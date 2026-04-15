@@ -4,7 +4,7 @@ import { Transform } from 'class-transformer';
 import { configValidator } from '../../config/util/config.validator';
 
 export class EnvironmentVariablesValidator {
-  @IsUrl()
+  @IsString()
   RABBITMQ_HOST: string;
 
   @IsOptional()

@@ -6,7 +6,7 @@ export type AddressType = 'home' | 'work' | 'delivery' | 'billing';
 @Entity({ name: 'Addresses' })
 export class Address extends DefaultTypeOrmEntity<Address> {
   @Index()
-  @Column({ nullable: false, length: 255 })
+  @Column({ type: 'uuid', nullable: false })
   public ProfileId: string;
 
   @Column({ nullable: false, length: 20, default: 'home' })
@@ -39,6 +39,9 @@ export class Address extends DefaultTypeOrmEntity<Address> {
   @Column({ type: 'varchar', nullable: true, length: 500 })
   public Formatted: string | null;
 
-  @Column({ type: 'varchar', nullable: true, length: 500 })
-  public Location: string | null;
+  @Column({ type: 'decimal', precision: 9, scale: 6, nullable: true })
+  public Latitude: number | null;
+
+  @Column({ type: 'decimal', precision: 9, scale: 6, nullable: true })
+  public Longitude: number | null;
 }

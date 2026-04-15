@@ -1,0 +1,55 @@
+{
+  "name": "identity-app",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/identity",
+  "projectType": "application",
+  "tags": [],
+  "targets": {
+    "serve": {
+      "executor": "@nx/js:node",
+      "defaultConfiguration": "development",
+      "options": {
+        "buildTarget": "identity-app:build"
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "identity-app:build:development"
+        },
+        "production": {
+          "buildTarget": "identity-app:build:production"
+        }
+      }
+    },
+    "build": {
+      "executor": "@nx/webpack:webpack",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "target": "node",
+        "compiler": "tsc",
+        "outputPath": "dist/identity",
+        "main": "apps/identity/main.ts",
+        "tsConfig": "apps/identity/tsconfig.app.json",
+        "webpackConfig": "apps/identity/webpack.config.js"
+      },
+      "configurations": {
+        "development": {
+          "optimization": false,
+          "outputHashing": "none"
+        },
+        "production": {
+          "optimization": true,
+          "outputHashing": "none",
+          "extractLicenses": true
+        }
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["apps/identity/**/*.ts"]
+      }
+    }
+  }
+}

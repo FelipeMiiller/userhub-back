@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { Tenant } from '../../../persistence/entities/tenants.entities';
 import { TenantRepository } from '../../../persistence/repository/tenant.typeorm.repository';
 
-
 @Injectable()
 export class TenantService {
   constructor(private readonly tenantRepository: TenantRepository) {}
@@ -22,7 +21,4 @@ export class TenantService {
   async update(id: string, data: Partial<Tenant>): Promise<Tenant | null> {
     return this.tenantRepository.update(id, data);
   }
-
-
-
 }

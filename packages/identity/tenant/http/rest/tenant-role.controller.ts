@@ -11,7 +11,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
-import { JwtAuthGuard } from '@hub/shared-module/authorization';
+import {
+  JwtAuthGuard,
+  TenantContextGuard,
+  IdentityPermissions,
+} from '@hub/shared-module/authorization';
 import { Permission } from '../../../core/decorators/permission.decorator';
 import { PermissionGuard } from '../../../core/guards/permission.guard';
 import { TenantRoleService } from '../../core/services/tenant-role.service';
@@ -19,13 +23,13 @@ import { CreateTenantRoleDto } from '../dto/request/create-tenant-role.dto';
 import { AddRolePermissionDto } from '../dto/request/add-role-permission.dto';
 
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, TenantContextGuard)
 @ApiTags('tenant-roles')
 @Controller('tenants/:tenantId/roles')
 export class TenantRoleController {
   constructor(private readonly tenantRoleService: TenantRoleService) {}
 
-  @Permission('identity.tenant-role.list')
+  @Permission(IdentityPermissions.TENANT_ROLE_LIST)
   @UseGuards(PermissionGuard)
   @Get()
   @ApiOperation({ summary: 'Lista roles de um tenant' })
@@ -34,7 +38,7 @@ export class TenantRoleController {
     return this.tenantRoleService.findAllByTenant(tenantId);
   }
 
-  @Permission('identity.tenant-role.view')
+  @Permission(IdentityPermissions.TENANT_ROLE_VIEW)
   @UseGuards(PermissionGuard)
   @Get(':id')
   @ApiOperation({ summary: 'Busca role por ID' })
@@ -46,7 +50,7 @@ export class TenantRoleController {
     return role;
   }
 
-  @Permission('identity.tenant-role.create')
+  @Permission(IdentityPermissions.TENANT_ROLE_CREATE)
   @UseGuards(PermissionGuard)
   @Post()
   @ApiOperation({ summary: 'Cria um role para um tenant' })
@@ -55,7 +59,7 @@ export class TenantRoleController {
     return this.tenantRoleService.create({ ...dto, TenantId: tenantId });
   }
 
-  @Permission('identity.tenant-role.update')
+  @Permission(IdentityPermissions.TENANT_ROLE_UPDATE)
   @UseGuards(PermissionGuard)
   @Patch(':id')
   @ApiOperation({ summary: 'Atualiza um role' })
@@ -67,7 +71,7 @@ export class TenantRoleController {
     return role;
   }
 
-  @Permission('identity.tenant-role.delete')
+  @Permission(IdentityPermissions.TENANT_ROLE_DELETE)
   @UseGuards(PermissionGuard)
   @Delete(':id')
   @HttpCode(204)
@@ -78,7 +82,7 @@ export class TenantRoleController {
     await this.tenantRoleService.delete(id);
   }
 
-  @Permission('identity.tenant-role.update')
+  @Permission(IdentityPermissions.TENANT_ROLE_UPDATE)
   @UseGuards(PermissionGuard)
   @Get(':id/permissions')
   @ApiOperation({ summary: 'Lista permissões de um role' })
@@ -88,22 +92,17 @@ export class TenantRoleController {
     return this.tenantRoleService.findPermissions(id);
   }
 
-  @Permission('identity.tenant-role.update')
+  @Permission(IdentityPermissions.TENANT_ROLE_UPDATE)
   @UseGuards(PermissionGuard)
   @Post(':id/permissions')
   @ApiOperation({ summary: 'Adiciona permissão a um role' })
   @ApiParam({ name: 'tenantId', type: String })
   @ApiParam({ name: 'id', type: String })
   async addPermission(@Param('id') id: string, @Body() dto: AddRolePermissionDto) {
-    return this.tenantRoleService.addPermission(
-      id,
-      dto.PermissionId,
-      dto.AllowedLevel,
-      dto.Mode,
-    );
+    return this.tenantRoleService.addPermission(id, dto.PermissionId, dto.AllowedLevel, dto.Mode);
   }
 
-  @Permission('identity.tenant-role.update')
+  @Permission(IdentityPermissions.TENANT_ROLE_UPDATE)
   @UseGuards(PermissionGuard)
   @Delete(':id/permissions/:permissionMappingId')
   @HttpCode(204)

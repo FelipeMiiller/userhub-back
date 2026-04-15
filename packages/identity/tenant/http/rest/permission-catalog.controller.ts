@@ -10,7 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { JwtAuthGuard } from '@hub/shared-module/authorization';
+import { JwtAuthGuard, IdentityPermissions } from '@hub/shared-module/authorization';
 import { Permission } from '../../../core/decorators/permission.decorator';
 import { PermissionGuard } from '../../../core/guards/permission.guard';
 import { PermissionCatalogService } from '../../core/services/permission-catalog.service';
@@ -23,7 +23,7 @@ import { CreatePermissionDto } from '../dto/request/create-permission.dto';
 export class PermissionCatalogController {
   constructor(private readonly permissionCatalogService: PermissionCatalogService) {}
 
-  @Permission('identity.permission.list')
+  @Permission(IdentityPermissions.PERMISSION_LIST)
   @UseGuards(PermissionGuard)
   @Get()
   @ApiOperation({ summary: 'Lista todas as permissões' })
@@ -32,7 +32,7 @@ export class PermissionCatalogController {
     return this.permissionCatalogService.findAll();
   }
 
-  @Permission('identity.permission.view')
+  @Permission(IdentityPermissions.PERMISSION_VIEW)
   @UseGuards(PermissionGuard)
   @Get(':id')
   @ApiOperation({ summary: 'Busca permissão por ID' })
@@ -45,7 +45,7 @@ export class PermissionCatalogController {
     return perm;
   }
 
-  @Permission('identity.permission.create')
+  @Permission(IdentityPermissions.PERMISSION_CREATE)
   @UseGuards(PermissionGuard)
   @Post()
   @ApiOperation({ summary: 'Cria uma permissão (Name gerado automaticamente)' })
@@ -54,7 +54,7 @@ export class PermissionCatalogController {
     return this.permissionCatalogService.create(dto);
   }
 
-  @Permission('identity.permission.delete')
+  @Permission(IdentityPermissions.PERMISSION_DELETE)
   @UseGuards(PermissionGuard)
   @Delete(':id')
   @HttpCode(204)

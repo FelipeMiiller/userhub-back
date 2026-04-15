@@ -1,6 +1,9 @@
 import { faker } from '@faker-js/faker';
 import * as Factory from 'factory.ts';
-import { TenantRolePermission, PermissionMode } from '../../persistence/entities/tenantRolePermissions.entities';
+import {
+  TenantRolePermission,
+  PermissionMode,
+} from '../../persistence/entities/tenantRolePermissions.entities';
 
 export const tenantRolePermissionFactory = Factory.Sync.makeFactory<Partial<TenantRolePermission>>({
   Id: Factory.each(() => faker.string.uuid()),

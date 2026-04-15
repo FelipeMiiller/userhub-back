@@ -25,7 +25,10 @@ export class Profile extends DefaultTypeOrmEntity<Profile> {
   @Column({ type: 'varchar', nullable: true, length: 14 })
   public Cpf: string | null;
 
+  @Column({ type: 'date', nullable: true })
+  public BirthDate: Date | null;
+
   @Index()
-  @Column({ type: 'varchar', nullable: true, length: 255 })
+  @Column({ type: 'uuid', nullable: true })
   public AccountId: string | null;
 }

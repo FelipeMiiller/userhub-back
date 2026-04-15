@@ -25,7 +25,6 @@ import { AccountService } from './account.service';
 import { EmailProducer } from '../../../integration/producers/email.producer';
 import * as argon2 from 'argon2';
 
-
 @Injectable()
 export class AuthenticationService {
   constructor(
@@ -40,11 +39,9 @@ export class AuthenticationService {
     private readonly authorizationService: AuthorizationService,
     private readonly emailProducer: EmailProducer,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-
   ) {
     this.loggerService.contextName = AuthenticationService.name;
   }
-
 
   async signUp(dto: signUpRequestDto): Promise<Account> {
     const existing = await this.accountService.findOneByEmail(dto.Email);
@@ -80,7 +77,6 @@ export class AuthenticationService {
     const tenants = await this.permissionEvaluatorService.getAllTenantsPermissions(user.Id);
 
     const payload: Payload = {
-      
       sub: user.Id,
       email: user.Email,
       status: user.Status,
@@ -93,7 +89,6 @@ export class AuthenticationService {
     }
 
     await this.accountService.updateRefreshToken(user.Id, refreshToken);
-
 
     return { accessToken, refreshToken };
   }
@@ -152,10 +147,6 @@ export class AuthenticationService {
     }
   }
 
-
-
-
-
   async refreshToken({ refreshToken }: Omit<Login, 'accessToken'>): Promise<Login> {
     const verifiedRefreshPayload: Payload = await this.verifyRefreshToken(refreshToken);
 
@@ -184,10 +175,13 @@ export class AuthenticationService {
     const jti = uuidv7();
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync({ ...payload, jti }),
-      this.jwtService.signAsync({ ...payload, jti: uuidv7() }, {
-        secret: this.refresTokenConfig.secret as string,
-        ...this.refresTokenConfig.signOptions,
-      }),
+      this.jwtService.signAsync(
+        { ...payload, jti: uuidv7() },
+        {
+          secret: this.refresTokenConfig.secret as string,
+          ...this.refresTokenConfig.signOptions,
+        },
+      ),
     ]);
 
     return { accessToken, refreshToken };

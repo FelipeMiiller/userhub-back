@@ -3,6 +3,7 @@
 Módulo global de autorização compartilhado entre todos os pacotes do monorepo.
 
 Responsabilidades:
+
 - Verificação e revogação de tokens JWT
 - Guards globais de autenticação e permissão
 - Contrato de permissões entre módulos
@@ -11,21 +12,21 @@ Responsabilidades:
 
 ## O que este módulo fornece
 
-| Export | Tipo | Descrição |
-|--------|------|-----------|
-| `AuthorizationModule` | `@Global()` | Importar uma vez no app raiz |
-| `AuthorizationService` | Service | Verifica e revoga tokens JWT |
-| `TokenDenylistService` | Service | Persiste tokens revogados no Redis |
-| `JwtAuthGuard` | Guard | Aplicado globalmente via `APP_GUARD` |
-| `RolesGuard` | Guard | ⚠️ Legado — sem uso ativo; use `@Permission()` + `PermissionGuard` |
-| `PermissionGuard` | Guard | Usar com `@Permission()` nos controllers |
-| `@Public()` | Decorator | Marca rota como pública (isenta do `JwtAuthGuard`) |
-| `@Permission(name)` | Decorator | Declara permissão requerida pela rota |
-| `@RolesGuards(roles)` | Decorator | ⚠️ Legado — sem uso ativo |
-| `IPermissionEvaluator` | Interface | Implementar para fornecer avaliação via DB |
-| `PERMISSION_EVALUATOR` | Token | Token de injeção para `IPermissionEvaluator` |
-| `Payload` | Interface | Tipo do payload JWT |
-| `PermissionLevel` | Enum | Níveis de permissão: NONE, VIEW, EDIT, ADMIN |
+| Export                 | Tipo        | Descrição                                                          |
+| ---------------------- | ----------- | ------------------------------------------------------------------ |
+| `AuthorizationModule`  | `@Global()` | Importar uma vez no app raiz                                       |
+| `AuthorizationService` | Service     | Verifica e revoga tokens JWT                                       |
+| `TokenDenylistService` | Service     | Persiste tokens revogados no Redis                                 |
+| `JwtAuthGuard`         | Guard       | Aplicado globalmente via `APP_GUARD`                               |
+| `RolesGuard`           | Guard       | ⚠️ Legado — sem uso ativo; use `@Permission()` + `PermissionGuard` |
+| `PermissionGuard`      | Guard       | Usar com `@Permission()` nos controllers                           |
+| `@Public()`            | Decorator   | Marca rota como pública (isenta do `JwtAuthGuard`)                 |
+| `@Permission(name)`    | Decorator   | Declara permissão requerida pela rota                              |
+| `@RolesGuards(roles)`  | Decorator   | ⚠️ Legado — sem uso ativo                                          |
+| `IPermissionEvaluator` | Interface   | Implementar para fornecer avaliação via DB                         |
+| `PERMISSION_EVALUATOR` | Token       | Token de injeção para `IPermissionEvaluator`                       |
+| `Payload`              | Interface   | Tipo do payload JWT                                                |
+| `PermissionLevel`      | Enum        | Níveis de permissão: NONE, VIEW, EDIT, ADMIN                       |
 
 ---
 
@@ -111,10 +112,10 @@ O token emitido pelo `identity` no login contém:
 }
 ```
 
-| Campo | Descrição |
-|-------|-----------|
-| `jti` | ID único do token — usado para revogação |
-| `sub` | ID do account |
+| Campo     | Descrição                                                        |
+| --------- | ---------------------------------------------------------------- |
+| `jti`     | ID único do token — usado para revogação                         |
+| `sub`     | ID do account                                                    |
 | `tenants` | Mapa de todos os tenants com as permissões do account em cada um |
 
 ---
@@ -170,10 +171,10 @@ O `identity` já fornece essa implementação via `PermissionEvaluatorService`.
 
 ## Variáveis de ambiente necessárias
 
-| Variável | Descrição |
-|----------|-----------|
-| `JWT_SECRET` | Secret para assinar/verificar tokens |
+| Variável         | Descrição                                 |
+| ---------------- | ----------------------------------------- |
+| `JWT_SECRET`     | Secret para assinar/verificar tokens      |
 | `JWT_EXPIRES_IN` | Duração do access token (ex: `15m`, `1h`) |
-| `REDIS_HOST` | Host do Redis (para denylist) |
-| `REDIS_PORT` | Porta do Redis |
-| `REDIS_PASSWORD` | Senha do Redis (opcional) |
+| `REDIS_HOST`     | Host do Redis (para denylist)             |
+| `REDIS_PORT`     | Porta do Redis                            |
+| `REDIS_PASSWORD` | Senha do Redis (opcional)                 |

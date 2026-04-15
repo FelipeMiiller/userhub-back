@@ -8,7 +8,7 @@ export class Tenant extends DefaultTypeOrmEntity<Tenant> {
   @Column({ nullable: false, length: 255 })
   public Name: string;
 
-  @Index({ unique: true })
+  @Index({ unique: true, where: '"DeletedAt" IS NULL' })
   @Column({ nullable: false, length: 100 })
   public Slug: string;
 

@@ -1,7 +1,7 @@
 import { registerAs } from '@nestjs/config';
 import { DataSourceOptions } from 'typeorm';
 import { IsBoolean, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
-import validateConfig from '@hub/shared-lib/utils/validate-config';
+
 import { Account } from '../persistence/entities/accounts.entities';
 import { Profile } from '../persistence/entities/profiles.entities';
 import { Address } from '../persistence/entities/addresses.entities';
@@ -12,9 +12,10 @@ import { Permission } from '../persistence/entities/permissions.entities';
 import { TenantRolePermission } from '../persistence/entities/tenantRolePermissions.entities';
 import { SystemModule } from '../persistence/entities/modules.entities';
 import { SystemResource } from '../persistence/entities/resources.entities';
-import { Migration1775608136301 } from '../persistence/migrations/1775608136301-Migration';
-import { Migration1775676224289 } from '../persistence/migrations/1775676224289-Migration';
-import { Migration1775954257745 } from '../persistence/migrations/1775954257745-Migration';
+import { TenantModule } from '../persistence/entities/tenantModules.entities';
+import { AccountTenantPermission } from '../persistence/entities/accountTenantPermissions.entities';
+import { Migration1776300000000 } from '../persistence/migrations/1776300000000-Migration';
+import { configValidator } from '@hub/shared-module/config';
 
 class EnvironmentVariablesValidator {
   @IsString()
@@ -43,7 +44,7 @@ class EnvironmentVariablesValidator {
 export type TypeormConfig = DataSourceOptions;
 
 export default registerAs('typeorm', (): TypeormConfig => {
-  validateConfig(process.env, EnvironmentVariablesValidator);
+  configValidator(process.env, EnvironmentVariablesValidator);
   return {
     name: 'identity',
     type: 'postgres',
@@ -63,8 +64,10 @@ export default registerAs('typeorm', (): TypeormConfig => {
       TenantRolePermission,
       SystemModule,
       SystemResource,
+      TenantModule,
+      AccountTenantPermission,
     ],
-    migrations: [Migration1775608136301, Migration1775676224289, Migration1775954257745],
+    migrations: [Migration1776300000000],
     migrationsTableName: 'identity_migrations',
     synchronize: false,
     logging: process.env.NODE_ENV !== 'test',

@@ -1,11 +1,5 @@
 import { Expose } from 'class-transformer';
-import {
-  IsBoolean,
-  IsEmail,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-} from 'class-validator';
+import { IsBoolean, IsEmail, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { DefaultResponseDto } from '@hub/shared-lib';
 
 export class UserResponseDto extends DefaultResponseDto {
@@ -23,5 +17,4 @@ export class UserResponseDto extends DefaultResponseDto {
   @IsBoolean()
   @Expose()
   readonly Status?: boolean;
-
 }

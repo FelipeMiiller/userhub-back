@@ -239,4 +239,24 @@ export abstract class DefaultTypeOrmRepository<T extends DefaultTypeOrmEntity<T>
       this.handlePostgresError(error);
     }
   }
+
+  /**
+   * Busca por `where` incluindo soft-deleted. Se encontrar um registro
+   * soft-deleted, restaura-o e retorna. Se não existir, cria um novo.
+   * Se já existir ativo, retorna sem alterar.
+   */
+  async createOrRestore(
+    where: FindOptionsWhere<T>,
+    entity: DeepPartial<T>,
+  ): Promise<T> {
+    const existing = await this.findOneWithDeleted({ where });
+    if (existing?.DeletedAt) {
+      await this.restore(existing.Id);
+      return (await this.findOne({ where }))!;
+    }
+    if (existing) {
+      return existing;
+    }
+    return this.create(entity);
+  }
 }

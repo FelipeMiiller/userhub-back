@@ -6,7 +6,7 @@
   "root": ".",
   "compilerOptions": {
     "deleteOutDir": false,
-    "webpack": false
+    "webpack": true
   },
   "projects": {
     "identity": {

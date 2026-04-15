@@ -2,7 +2,9 @@ import { PermissionEvaluatorService } from '../services/permission-evaluator.ser
 import { PermissionService } from '../services/permission.service';
 import { DataSource } from 'typeorm';
 
-const makeDataSourceMock = (queryImpl: (sql: string, params?: unknown[]) => Promise<unknown[]>) => ({
+const makeDataSourceMock = (
+  queryImpl: (sql: string, params?: unknown[]) => Promise<unknown[]>,
+) => ({
   query: queryImpl,
 });
 
@@ -10,7 +12,10 @@ describe('PermissionEvaluatorService (Avaliação de Permissão)', () => {
   it('permite quando o papel fornece AllowedLevel suficiente', async () => {
     const ds = makeDataSourceMock(async (sql) => {
       if (sql.includes('FROM "AccountTenants"')) {
-        return [{ TenantRoleId: 'role1', ExtraPermissions: null }];
+        return [{ Id: 'at1', TenantRoleId: 'role1' }];
+      }
+      if (sql.includes('FROM "AccountTenantPermissions"')) {
+        return [];
       }
       return [{ TenantRoleId: 'role1', AllowedLevel: 2, Mode: 'allow' }];
     }) as unknown as DataSource;
@@ -25,7 +30,10 @@ describe('PermissionEvaluatorService (Avaliação de Permissão)', () => {
   it('nega quando o papel está em modo deny', async () => {
     const ds = makeDataSourceMock(async (sql) => {
       if (sql.includes('FROM "AccountTenants"')) {
-        return [{ TenantRoleId: 'role1', ExtraPermissions: null }];
+        return [{ Id: 'at1', TenantRoleId: 'role1' }];
+      }
+      if (sql.includes('FROM "AccountTenantPermissions"')) {
+        return [];
       }
       return [{ TenantRoleId: 'role1', AllowedLevel: 2, Mode: 'deny' }];
     }) as unknown as DataSource;
@@ -50,7 +58,10 @@ describe('PermissionEvaluatorService (Avaliação de Permissão)', () => {
   it('nega quando não há permissão de papel nem grant extra', async () => {
     const ds = makeDataSourceMock(async (sql) => {
       if (sql.includes('FROM "AccountTenants"')) {
-        return [{ TenantRoleId: 'role1', ExtraPermissions: null }];
+        return [{ Id: 'at1', TenantRoleId: 'role1' }];
+      }
+      if (sql.includes('FROM "AccountTenantPermissions"')) {
+        return [];
       }
       return [];
     }) as unknown as DataSource;
@@ -62,10 +73,13 @@ describe('PermissionEvaluatorService (Avaliação de Permissão)', () => {
     expect(res.reason).toBe('no_permission');
   });
 
-  it('permite quando ExtraPermissions.grant contém a permissão', async () => {
+  it('permite quando AccountTenantPermissions tem Mode=grant para a permissão', async () => {
     const ds = makeDataSourceMock(async (sql) => {
       if (sql.includes('FROM "AccountTenants"')) {
-        return [{ TenantRoleId: null, ExtraPermissions: { grant: ['sales.order.update'] } }];
+        return [{ Id: 'at1', TenantRoleId: null }];
+      }
+      if (sql.includes('FROM "AccountTenantPermissions"')) {
+        return [{ Name: 'sales.order.update', Mode: 'grant' }];
       }
       return [];
     }) as unknown as DataSource;
@@ -76,10 +90,13 @@ describe('PermissionEvaluatorService (Avaliação de Permissão)', () => {
     expect(res.allowed).toBe(true);
   });
 
-  it('nega quando ExtraPermissions.deny contém a permissão mesmo se o papel permitir', async () => {
+  it('nega quando AccountTenantPermissions tem Mode=deny mesmo se o papel permitir', async () => {
     const ds = makeDataSourceMock(async (sql) => {
       if (sql.includes('FROM "AccountTenants"')) {
-        return [{ TenantRoleId: 'role1', ExtraPermissions: { deny: ['sales.order.update'] } }];
+        return [{ Id: 'at1', TenantRoleId: 'role1' }];
+      }
+      if (sql.includes('FROM "AccountTenantPermissions"')) {
+        return [{ Name: 'sales.order.update', Mode: 'deny' }];
       }
       return [{ TenantRoleId: 'role1', AllowedLevel: 2, Mode: 'allow' }];
     }) as unknown as DataSource;

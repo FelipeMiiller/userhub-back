@@ -12,7 +12,7 @@ import { EmailProducer } from './producers/email.producer';
     {
       provide: AmqpConnection,
       useValue: {
-        publish: jest.fn().mockResolvedValue(undefined),
+        publish: () => Promise.resolve(undefined),
       },
     },
     EmailProducer,

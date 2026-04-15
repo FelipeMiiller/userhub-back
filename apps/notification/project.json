@@ -1,0 +1,55 @@
+{
+  "name": "notification-app",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/notification",
+  "projectType": "application",
+  "tags": [],
+  "targets": {
+    "serve": {
+      "executor": "@nx/js:node",
+      "defaultConfiguration": "development",
+      "options": {
+        "buildTarget": "notification-app:build"
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "notification-app:build:development"
+        },
+        "production": {
+          "buildTarget": "notification-app:build:production"
+        }
+      }
+    },
+    "build": {
+      "executor": "@nx/webpack:webpack",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "target": "node",
+        "compiler": "tsc",
+        "outputPath": "dist/notification",
+        "main": "apps/notification/main.ts",
+        "tsConfig": "apps/notification/tsconfig.app.json",
+        "webpackConfig": "apps/notification/webpack.config.js"
+      },
+      "configurations": {
+        "development": {
+          "optimization": false,
+          "outputHashing": "none"
+        },
+        "production": {
+          "optimization": true,
+          "outputHashing": "none",
+          "extractLicenses": true
+        }
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["apps/notification/**/*.ts"]
+      }
+    }
+  }
+}

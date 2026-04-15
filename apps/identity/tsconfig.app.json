@@ -1,0 +1,26 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "../../dist/identity",
+    "baseUrl": "../../",
+    "paths": {
+      "@hub/shared-lib": ["shared/lib/index.ts"],
+      "@hub/shared-lib/*": ["shared/lib/*"],
+      "@hub/shared-module/*": ["shared/module/*"],
+      "@packages/identity/*": ["packages/identity/*"],
+      "@packages/notification/*": ["packages/notification/*"]
+    }
+  },
+  "exclude": ["**/*.spec.ts", "**/*.e2e-spec.ts"],
+  "references": [
+    {
+      "path": "../../shared/module/tsconfig.lib.json"
+    },
+    {
+      "path": "../../packages/identity/tsconfig.lib.json"
+    },
+    {
+      "path": "../../shared/lib/tsconfig.lib.json"
+    }
+  ]
+}

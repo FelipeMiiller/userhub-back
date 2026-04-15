@@ -51,207 +51,165 @@ Este projeto adota uma **arquitetura modular** baseada em princípios explícito
 
 ---
 
-API construída com **NestJS + TypeScript**, autenticação JWT, controle de usuários, permissões, documentação Swagger, logging estruturado (Slack), CI/CD Render, e arquitetura modular profissional.
+API construída com **NestJS + TypeScript**, autenticação JWT, multitenancy, controle de permissões, Swagger, logging estruturado, RabbitMQ e arquitetura modular.
 
-## ⚡ Funcionalidades
+## 📁 Estrutura de Pastas
 
-### 1. Autenticação de Usuários
-
-- Autenticação JWT com os seguintes endpoints:
-  - `POST /auth/signup` — Cadastro de usuário
-  - `POST /auth/signin` — Login com email/senha
-  - `POST /auth/google/signin` — Login com Google
-  - `POST /auth/google/callback` — Callback do Google OAuth
-  - `POST /auth/refreshToken` — Refresh token
-  - `POST /auth/signout` — Logout
-  - `GET /auth/me` — Informações do usuário logado
-  - `POST /auth/forgot-password` — Solicitar recuperação de senha (envia e-mail com nova senha)
-
-### Configurações necessárias no Google Console
-
-- No Google Cloud Console, criar um projeto e ativar a API Google Sign-In.
-- Em "APIs & Services" > "Dashboard", criar um "OAuth client ID" do tipo "Web application".
-- Adicionar a URL do seu projeto, por exemplo: `http://localhost:3005`
-- Configurar as variáveis de ambiente no arquivo `.env`:
-  ```
-  GOOGLE_CLIENT_ID=seu_client_id
-  GOOGLE_SECRET=seu_client_secret
-  GOOGLE_CALLBACK_USER_URL=api/auth/google/callback
-  ```
-
-![Configuracao Google](./assets/cloud.png)
-
-### 2. Recuperação de Senha
-
-- Fluxo de recuperação seguro via e-mail
-- Geração automática de senha temporária
-- Template de e-mail responsivo e moderno
-- Validação de e-mail e tratamento de erros
-- Segurança: Senhas armazenadas com hash usando Argon2
-
-### 3. Gerenciamento e CRUD de Usuários
-
-- Rotas:
-  - `GET /users` — Listar usuários (admin)
-  - `GET /users/me` — Ver perfil próprio
-  - `PATCH /users/:id` — Atualizar
-  - `DELETE /users/:id` — Excluir
-- Campos: `id` (ULID), `name`, `email` (único), `password` (hash), `role` (`admin`/`user`), `createdAt`, `updatedAt`
-- Permissões:
-  - **admin**: listar e excluir todos
-  - **user**: editar/visualizar apenas o próprio perfil
-
-### 4. Filtros e Ordenação
-
-- Filtro por role: `?role=admin`
-- Ordenação: `?sortBy=name&order=asc`
-
-### 5. Notificações de Inativos
-
-- Endpoint para listar usuários sem login há 30 dias
-
-### 6. Logging Estruturado e Auditoria
-
-- Logs em console, Slack
-- Logger configurável: persistência e alerta por Slack
-- Exemplo:
-
-```typescript
-logger.error('Falha ao salvar usuário', { payload }, { slack: true, userId });
+```
+├── apps/
+│   ├── identity/          # Bootstrap do app identity (orquestra IdentityModule)
+│   └── notification/      # Bootstrap do app notification
+│
+├── packages/
+│   ├── identity/          # Domínio de identidade — auth, tenants, catalog, persistência
+│   │   ├── authentication/
+│   │   ├── tenant/
+│   │   ├── catalog/
+│   │   ├── persistence/
+│   │   └── config/
+│   └── notification/      # Domínio de notificações (e-mail, push)
+│
+├── shared/
+│   ├── lib/               # Utilitários e bibliotecas reutilizáveis (não-módulo)
+│   └── module/            # Módulos de infraestrutura compartilhada
+│       ├── authorization/ # Guards JWT, PermissionGuard, TokenDenylist
+│       ├── cache/         # Redis cache
+│       ├── event/         # Eventos internos
+│       ├── http-client/   # Cliente HTTP configurável
+│       ├── integrations/  # RabbitMQ e integrações externas
+│       ├── loggers/       # Logger estruturado
+│       └── persistences/  # TypeORM base
+│
+├── docker/
+│   └── dev.docker-compose.yml  # PostgreSQL + Redis + RabbitMQ local
+│
+└── .env.example           # Template de variáveis de ambiente
 ```
 
-### 7. Documentação, Testes e Deploy
+## 🚀 Como iniciar a aplicação
 
-- Swagger em `/api/docs`
-- Testes com Jest (`yarn test`)
-- Docker Compose para ambiente local (Postgres, Redis)
-- Deploy automatizado com Render (CI/CD)
+### 1. Pré-requisitos
 
-### 8. Health Check
+- Node.js >= 24.13.0
+- Yarn
+- Docker + Docker Compose
 
-O sistema oferece endpoint de health check:
+### 2. Variáveis de ambiente
 
-## 🔐 Segurança
+Copie o exemplo e preencha as variáveis:
 
-- JWT, roles, validação, tratamento de erros
+```bash
+cp .env.example .env
+```
 
-## 🛠️ Variáveis de Ambiente
+Variáveis obrigatórias por serviço:
 
-- `DATABASE_URL`, `REDIS_URL`, `JWT_SECRET`, `SLACK_WEBHOOK_URL`, etc.
+| Grupo      | Variáveis                                                                                    |
+| ---------- | -------------------------------------------------------------------------------------------- |
+| App        | `PORT`, `NODE_ENV`, `BACKEND_DOMAIN`                                                         |
+| JWT        | `JWT_SECRET`, `JWT_EXPIRES_IN`, `REFRESH_JWT_SECRET`, `REFRESH_JWT_EXPIRES_IN`               |
+| PostgreSQL | `TYPEORM_HOST`, `TYPEORM_USERNAME`, `TYPEORM_PASSWORD`, `TYPEORM_DATABASE`, `TYPEORM_PORT`   |
+| Redis      | `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`, `REDIS_TTL`                                    |
+| RabbitMQ   | `RABBITMQ_HOST`, `RABBITMQ_PORT`, `RABBITMQ_USERNAME`, `RABBITMQ_PASSWORD`, `RABBITMQ_VHOST` |
+| Google     | `GOOGLE_CLIENT_ID`, `GOOGLE_SECRET`, `GOOGLE_CALLBACK_USER_PATH`                             |
+| Identity   | `IDENTITY_API_PORT` (padrão: `PORT`)                                                         |
+
+### 3. Subir infraestrutura local
+
+```bash
+docker compose -f docker/dev.docker-compose.yml --project-name userhub up -d
+```
+
+Isso sobe PostgreSQL, Redis e RabbitMQ.
+
+### 4. Rodar migrations
+
+```bash
+# Migrations do domínio identity
+yarn db:migrate:identity
+```
+
+### 5. Iniciar apps em desenvolvimento
+
+Cada app é um processo independente. Inicie os que precisar:
+
+```bash
+# App identity (porta definida em IDENTITY_API_PORT ou PORT)
+yarn start:dev:identity
+
+# App notification
+yarn start:dev:notification
+```
+
+Ou via Nx diretamente:
+
+```bash
+npx nx run identity-app:serve
+npx nx run notification-app:serve
+```
+
+### 6. Build de produção
+
+```bash
+yarn build:identity
+yarn build:notification
+
+# Ou todos de uma vez
+yarn build
+```
 
 ---
 
-O projeto utiliza **ULID** (Universally Unique Lexicographically Sortable Identifier) como identificador único para entidades principais, em substituição ao UUID tradicional. ULIDs são ordenáveis por tempo, seguros para uso distribuído e facilitam queries e ordenação no banco de dados.
+## 📦 Módulos — Documentação
 
-**Vantagens do ULID:**
+| Módulo                     | Caminho                        | README                                                                                 |
+| -------------------------- | ------------------------------ | -------------------------------------------------------------------------------------- |
+| **identity** (domínio)     | `packages/identity/`           | [packages/identity/README.md](packages/identity/README.md)                             |
+| **notification** (domínio) | `packages/notification/`       | [packages/notification/README.md](packages/notification/README.md)                     |
+| **shared/lib**             | `shared/lib/`                  | [shared/lib/README.md](shared/lib/README.md)                                           |
+| **shared/module**          | `shared/module/`               | [shared/module/README.md](shared/module/README.md)                                     |
+| **authorization**          | `shared/module/authorization/` | [shared/module/authorization/README.md](shared/module/authorization/README.md)         |
 
-- Ordenação temporal nativa
-- Compatível com bancos modernos
-- Mais amigável para logs e URLs do que UUID
 
-**Exemplo de uso:**
-
-```typescript
-import { ulid } from 'ulid';
-
-const newId = ulid(); // Exemplo: 01HZ7YF8T1X3J6Y2YB4K2K3QZC
-```
-
-As migrations e entidades já estão preparadas para trabalhar com ULID como chave primária.
-
-## 📁 Estrutura de Pastas e Conceito Modular
-
-A arquitetura é dividida em **apps** (orquestradores) e **packages** (domínios e infraestrutura):
-
-```
-├── apps/                  # Pontos de entrada (APIs, workers, gateways)
-│   └── api/               # Exemplo: app principal, apenas importa módulos de packages
-│
-├── packages/              # Domínios e infraestrutura (plugáveis, reutilizáveis)
-│   ├── identity/          # Domínio de identidade (autenticação, usuários, roles)
-│   │   ├── core/          # Regras de negócio puras do domínio
-│   │   ├── http/          # Controllers, DTOs, validadores e rotas
-│   │   ├── persistence/   # Entidades, repositórios, migrations, data source
-│   │   └── config/        # Configuração isolada do domínio
-│   ├── mail/              # Domínio de e-mail (serviço, templates, envio)
-│   └── ...                # Outros domínios (ex: billing, notificações, etc.)
-│
-├── shared/                # Infraestrutura e utilitários compartilhados
-│   ├── modules/           # Módulos de persistência, cache, fila, etc.
-│   └── utils/             # Funções utilitárias genéricas
-│
-├── config/                # Configurações globais (env, redis, database)
-├── migrations/            # Migrations globais (se necessário)
-├── main.ts                # Bootstrap do app (geralmente em apps/api)
-└── test/                  # Testes unitários e e2e
-```
-
-### 🧩 **Como funciona o conceito modular?**
-
-- Cada **package** é um "bloco" autocontido: regras, entidades, controllers, config e testes próprios.
-- **Apps** apenas orquestram quais módulos/packages serão usados — não possuem lógica de domínio.
-- É possível criar novos apps, combinando diferentes packages (ex: API pública, worker de fila, microserviço).
-- Packages podem ser extraídos para microserviços no futuro sem reescrita.
-- **Plugabilidade:** adicionar/remover domínios é simples, basta importar/remover o package no app.
-- **Reuso:** packages podem ser publicados e reutilizados em outros projetos.
-
-> **Resumo:**
->
-> - **Isolamento:** cada domínio evolui independente.
-> - **Escalabilidade:** fácil crescer para múltiplos apps/microserviços.
-> - **Testabilidade:** cada package pode ser testado isoladamente.
-> - **Organização:** código limpo, desacoplado e sustentável.
+---
 
 ## ⚙️ Scripts Disponíveis
 
-````bash
-# Iniciar em modo desenvolvimento
-yarn start:dev
+```bash
+# Desenvolvimento
+yarn start:dev:identity       # inicia o app identity com watch
+yarn start:dev:notification   # inicia o app notification com watch
 
-yarn start:dev notification
+# Build
+yarn build:identity
+yarn build:notification
+yarn build                    # todos os projetos
 
-yarn start:dev monolith
+# Banco de dados
+yarn db:migrate:identity      # roda migrations do identity
+yarn db:generate:identity     # gera nova migration após alterar entidades
+yarn db:drop:identity         # dropa o schema (cuidado!)
 
-# Build de produção
-yarn build
-
-# Iniciar em produção
-yarn start:prod
-
-# Lint
+# Lint / Format
 yarn lint
-
-# Format
 yarn format
 
-# Testes unitários
-yarn test
+# Testes
+yarn test:identity            # testes do pacote identity
+yarn test:notification        # testes do pacote notification
+yarn test                     # todos os projetos
 
-# Testes e2e
-yarn test:e2e
-
-# Cobertura de testes
+# Cobertura
 yarn test:cov
-
-# preview template email
- yarn email:dev
-
-# Instalação do pacote `uuid`
-
-Instale a dependência no workspace (root) ou apenas no package `identity`:
-
-```bash
-# Instalar no workspace root (use -W para confirmar)
-yarn add uuid -W
-yarn add -D @types/uuid -W
-
-# Instalar somente no package `identity`
-yarn workspace identity add uuid
-yarn workspace identity add -D @types/uuid
-````
-
-Use o `-W` somente quando realmente quiser adicionar a dependência ao root do monorepo.
-
 ```
 
+### Instalar dependências em pacotes específicos
+
+```bash
+# No workspace root (use -W)
+yarn add <pacote> -W
+
+# Em um package específico
+yarn workspace @packages/identity add <pacote>
+yarn workspace @packages/notification add <pacote>
 ```

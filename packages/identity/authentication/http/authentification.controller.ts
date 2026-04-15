@@ -4,13 +4,11 @@ import {
   Get,
   HttpCode,
   HttpStatus,
-  NotFoundException,
   Post,
   Query,
   Req,
   Res,
   UseGuards,
-  Patch,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiBody, ApiTags } from '@nestjs/swagger';
@@ -20,7 +18,6 @@ import { plainToInstance } from 'class-transformer';
 import { UserResponseDto } from './dto/response/user-response.dto';
 import { RecoveryPasswordRequestDto } from './dto/request/recovery-password.dto';
 import { ChangePasswordRequestDto } from './dto/request/change-password.dto';
-import { UpdateMeRequestDto } from './dto/request/update-me.dto';
 import { Public, JwtAuthGuard, Login, Payload } from '@hub/shared-module/authorization';
 import { LoggerService } from '@hub/shared-module/loggers';
 import { AuthenticationService } from '../core/services/auth.service';
@@ -71,10 +68,7 @@ export class AuthentificationController {
   @ApiResponse({ status: 201, description: 'Tenant criado e vinculado ao account' })
   @ApiResponse({ status: 404, description: 'Account não encontrada' })
   @ApiResponse({ status: 409, description: 'Slug já está em uso' })
-  async createOnboardingTenant(
-    @Req() req: AuthRequest,
-    @Body() dto: CreateOnboardingTenantDto,
-  ) {
+  async createOnboardingTenant(@Req() req: AuthRequest, @Body() dto: CreateOnboardingTenantDto) {
     const { sub }: Payload = req['user'];
     return this.accountService.createOnboardingTenant({
       AccountId: sub,
@@ -128,7 +122,9 @@ export class AuthentificationController {
   @Public()
   @UseGuards(GoogleUserAuthGuard)
   @Get('google/signin')
-  googleLoginUser(): void { return; }
+  googleLoginUser(): void {
+    return;
+  }
 
   @Public()
   @UseGuards(GoogleUserAuthGuard)
@@ -156,35 +152,6 @@ export class AuthentificationController {
   async logoutUser(@Req() req: AuthRequest) {
     const token = (req.headers as Record<string, string>)?.authorization?.split(' ')[1];
     return this.authService.signOutUser(req['user'].sub, token);
-  }
-
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
-  @Get('me')
-  async getUser(@Req() req: AuthRequest): Promise<UserResponseDto> {
-    const { sub, email }: Payload = req['user'];
-    const user = await this.accountService.findMe(sub);
-    if (!user) {
-      throw new NotFoundException(`User not found ${email}`);
-    }
-
-    return plainToInstance(UserResponseDto, user, {
-      excludeExtraneousValues: true,
-    });
-  }
-
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
-  @Patch('me')
-  @ApiOperation({ summary: 'Atualiza usuário por ID' })
-  @ApiBody({ type: UpdateMeRequestDto })
-  @ApiResponse({ status: 200, description: 'Usuário atualizado', type: UserResponseDto })
-  @ApiResponse({ status: 404, description: 'Usuário não encontrado' })
-  async updateMe(@Body() dto: UpdateMeRequestDto, @Req() req: AuthRequest): Promise<UserResponseDto> {
-    const user = await this.accountService.updateMe(req['user'].sub, dto);
-    return plainToInstance(UserResponseDto, user, {
-      excludeExtraneousValues: true,
-    });
   }
 
   @Public()

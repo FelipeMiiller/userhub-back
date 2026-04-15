@@ -1,7 +1,8 @@
+import { configValidator } from '@hub/shared-module/config';
 import { registerAs } from '@nestjs/config';
 import type { JwtModuleOptions } from '@nestjs/jwt';
 import { IsString } from 'class-validator';
-import { configValidator } from '../../config/util/config.validator';
+
 
 class EnvironmentVariablesValidator {
   @IsString()

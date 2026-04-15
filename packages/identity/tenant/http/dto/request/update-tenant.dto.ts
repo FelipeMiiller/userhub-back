@@ -14,7 +14,10 @@ export class UpdateTenantDto {
   @IsOptional()
   readonly Slug?: string;
 
-  @ApiPropertyOptional({ description: 'Status do tenant', enum: ['active', 'inactive', 'suspended'] })
+  @ApiPropertyOptional({
+    description: 'Status do tenant',
+    enum: ['active', 'inactive', 'suspended'],
+  })
   @IsEnum(['active', 'inactive', 'suspended'])
   @IsOptional()
   readonly Status?: TenantStatus;

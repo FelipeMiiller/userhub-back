@@ -6,11 +6,11 @@ export type PermissionMode = 'allow' | 'deny';
 @Entity({ name: 'TenantRolePermissions' })
 export class TenantRolePermission extends DefaultTypeOrmEntity<TenantRolePermission> {
   @Index()
-  @Column({ nullable: false, length: 255 })
+  @Column({ type: 'uuid', nullable: false })
   public TenantRoleId: string;
 
   @Index()
-  @Column({ nullable: false, length: 255 })
+  @Column({ type: 'uuid', nullable: false })
   public PermissionId: string;
 
   @Column({ nullable: false, type: 'int', default: 1 })

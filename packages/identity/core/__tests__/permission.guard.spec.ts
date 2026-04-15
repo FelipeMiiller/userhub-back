@@ -6,14 +6,19 @@ import { PermissionEvaluatorService } from '../services/permission-evaluator.ser
 describe('PermissionGuard (Guarda de Permissão)', () => {
   it('permite quando o avaliador retorna allowed', async () => {
     const reflector = new Reflector();
-    const evaluator = { evaluate: jest.fn().mockResolvedValue({ allowed: true }) } as unknown as PermissionEvaluatorService;
+    const evaluator = {
+      evaluate: jest.fn().mockResolvedValue({ allowed: true }),
+    } as unknown as PermissionEvaluatorService;
 
     const guard = new PermissionGuard(reflector, evaluator);
 
     const handler = jest.fn();
     jest.spyOn(reflector, 'get').mockReturnValue('sales.order.view');
 
-    const req = { user: { sub: 'acc1' }, headers: { 'x-tenant-id': 'tenant1' } } as unknown as Request;
+    const req = {
+      user: { sub: 'acc1' },
+      headers: { 'x-tenant-id': 'tenant1' },
+    } as unknown as Request;
     const ctx = {
       switchToHttp: () => ({ getRequest: () => req }),
       getHandler: () => handler,

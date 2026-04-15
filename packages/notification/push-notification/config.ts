@@ -1,6 +1,6 @@
 import { registerAs } from '@nestjs/config';
 import { IsOptional, IsString, IsUrl } from 'class-validator';
-import validateConfig from '@hub/shared-lib/utils/validate-config';
+import { configValidator } from '@hub/shared-module/config';
 
 class EnvironmentVariablesValidator {
   @IsUrl()
@@ -28,7 +28,7 @@ export interface NtfyConfig {
 }
 
 export default registerAs('ntfy', (): NtfyConfig => {
-  validateConfig(process.env, EnvironmentVariablesValidator);
+  configValidator(process.env, EnvironmentVariablesValidator);
 
   return {
     url: process.env.NTFY_URL || 'https://ntfy.sh',

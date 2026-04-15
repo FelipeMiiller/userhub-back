@@ -2,7 +2,6 @@
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
   "targetDefaults": {
     "format": {
-      "outputs": ["{projectRoot}/no"],
       "cache": true
     },
     "lint:check": {
@@ -17,7 +16,10 @@
   },
   "release": {
     "projectsRelationship": "independent",
-    "projects": ["apps/**", "packages/**"],
+    "projects": [
+      "apps/**",
+      "packages/**"
+    ],
     "version": {
       "conventionalCommits": true
     },
@@ -70,7 +72,9 @@
       "options": {
         "targetName": "test"
       },
-      "exclude": ["apps/test-e2e/**/*"]
+      "exclude": [
+        "apps/test-e2e/**/*"
+      ]
     },
     {
       "plugin": "@nx/js/typescript",
@@ -85,22 +89,8 @@
           "watchDepsName": "watch-deps"
         }
       }
-    },
-    {
-      "plugin": "@nx/webpack/plugin",
-      "options": {
-        "buildTargetName": "build",
-        "serveTargetName": "serve",
-        "previewTargetName": "preview",
-        "buildDepsTargetName": "build-deps",
-        "watchDepsTargetName": "watch-deps"
-      }
     }
   ],
-  "nxConfig": {
-    "projectFilePatterns": ["project.json"],
-    "excludeFromWorkspaceInference": ["**/node_modules/**", "**/*.spec.ts", "./package.json"]
-  },
   "tui": {
     "enabled": false
   }

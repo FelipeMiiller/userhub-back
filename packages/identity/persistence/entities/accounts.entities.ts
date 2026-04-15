@@ -3,8 +3,8 @@ import { DefaultTypeOrmEntity } from '@hub/shared-module/persistences';
 
 @Entity({ name: 'Accounts' })
 export class Account extends DefaultTypeOrmEntity<Account> {
-  @Index()
-  @Column({ nullable: false, length: 255, unique: true })
+  @Index({ unique: true, where: '"DeletedAt" IS NULL' })
+  @Column({ nullable: false, length: 255 })
   public Email: string;
 
   @Column({ nullable: false, length: 255 })

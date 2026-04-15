@@ -4,12 +4,12 @@ import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
 import { Transport } from '@nestjs/microservices';
 import { LoggerService } from '@hub/shared-module/loggers';
-import { RabbitMQConfig } from '@hub/shared-module/config/rabbitmq.config';
+import { RabbitMQConfig } from '@hub/shared-module/integrations/config/rabbitmq.config';
 
 async function bootstrap() {
   const appContext = await NestFactory.createApplicationContext(AppModule);
   const configService = appContext.get(ConfigService);
-  const rabbitmqConfig = configService.get<RabbitMQConfig>('rabbitmq');
+  const rabbitmqConfig = configService.getOrThrow<RabbitMQConfig>('rabbitmq');
 
   const app = await NestFactory.createMicroservice<MicroserviceOptions>(AppModule, {
     transport: Transport.RMQ,

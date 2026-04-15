@@ -1,6 +1,6 @@
 import { registerAs } from '@nestjs/config';
 import { IsBoolean, IsInt, IsString, IsUrl, Max, Min } from 'class-validator';
-import validateConfig from '@hub/shared-lib/utils/validate-config';
+import { configValidator } from '@hub/shared-module/config';
 
 class EnvironmentVariablesValidator {
   @IsString()
@@ -47,7 +47,7 @@ export interface MailConfig {
   };
 }
 export default registerAs('mail', (): MailConfig => {
-  validateConfig(process.env, EnvironmentVariablesValidator);
+  configValidator(process.env, EnvironmentVariablesValidator);
 
   return {
     frontendDomain: process.env.FRONTEND_DOMAIN as string,

@@ -6,28 +6,31 @@
 
 ```
 Account
-  └─ AccountTenant (AccountId + TenantId + TenantRoleId + ExtraPermissions jsonb)
+  └─ AccountTenant (AccountId + TenantId + TenantRoleId)
         └─ TenantRoleId → TenantRole
-                              └─ TenantRolePermission (TenantRoleId + PermissionId + AllowedLevel + Mode)
-                                        └─ Permission (Id, Name, ModuleId FK, ResourceId FK, Action)
-                                                  └─ SystemResource (ModuleId FK, Slug, Name)
-                                                            └─ SystemModule (Slug, Name)
-```
-
+                          └─ TenantRolePermission (TenantRoleId + PermissionId + AllowedLevel + Mode)
+                                    └─ Permission (Id, Name, ModuleId FK, ResourceId FK, Action)
+                                              └─ SystemResource (ModuleId FK, Slug, Name)
+                                                        └─ SystemModule (Slug, Name)
+                                                                  ↑
+                                                       TenantModule (Tenant habilitou?)
+AccountTenantPermissions (permissões extras por AccountTenantId, Mode grant/deny)
 ### Diagrama ER
 
 ```
+
 Accounts ──< AccountTenants >── Tenants
-                  │
-                  └── TenantRoleId ──> TenantRoles (TenantId)
-                                            │
-                                   TenantRolePermissions (PermissionId, AllowedLevel, Mode)
-                                            │
-                                       Permissions (Name, ModuleId FK, ResourceId FK, Action)
-                                            │         │
-                                            │    SystemResources (ModuleId FK, Slug, Name)
-                                            │         │
-                                            └─────────┴──> SystemModules (Slug, Name)
+│
+└── TenantRoleId ──> TenantRoles (TenantId)
+│
+TenantRolePermissions (PermissionId, AllowedLevel, Mode)
+│
+Permissions (Name, ModuleId FK, ResourceId FK, Action)
+│ │
+│ SystemResources (ModuleId FK, Slug, Name)
+│ │
+└─────────┴──> SystemModules (Slug, Name)
+
 ```
 
 ### Token de autorização (`Permission.Name`)
@@ -35,10 +38,12 @@ Accounts ──< AccountTenants >── Tenants
 Formato: `{module.slug}.{resource.slug}.{action}`
 
 ```
+
 billing.invoice.read
 tenant.account.manage
 identity.profile.update
-```
+
+````
 
 Usado nos guards: `@Permission('billing.invoice.read')`
 
@@ -63,7 +68,7 @@ O token retornado contém a identidade do account **mais** o mapa completo de te
     "tenant-uuid-2": ["identity.profile.update"]
   }
 }
-```
+````
 
 O claim `tenants` é um mapa onde cada chave é um `tenantId` e o valor é a lista de todas as permission names que o account possui naquele tenant (role permissions + ExtraPermissions.grant − ExtraPermissions.deny).
 
@@ -145,7 +150,7 @@ O double-check é: **PermissionGuard** verifica se o account tem permissão no t
 
 1. Busca memberships em `AccountTenants` para `(accountId, tenantId)`
 2. Se nenhuma membership → `{ allowed: false, reason: 'no_membership' }`
-3. Se alguma membership tem `ExtraPermissions.deny` contendo o nome → `{ allowed: false, reason: 'extra_deny' }` *(deny explícito prevalece sobre tudo)*
+3. Se alguma membership tem `ExtraPermissions.deny` contendo o nome → `{ allowed: false, reason: 'extra_deny' }` _(deny explícito prevalece sobre tudo)_
 4. Busca `TenantRolePermissions` para os roleIds + permissionName via JOIN em `Permissions.Name`
 5. Se algum row tem `Mode = 'deny'` → `{ allowed: false, reason: 'role_deny' }`
 6. Se nenhum row de role E nenhum `ExtraPermissions.grant` com o nome → `{ allowed: false, reason: 'no_permission' }`
@@ -169,15 +174,42 @@ O double-check é: **PermissionGuard** verifica se o account tem permissão no t
 ```json
 {
   "grant": ["billing.invoice.read"],
-  "deny":  ["tenant.account.manage"]
+  "deny": ["tenant.account.manage"]
 }
 ```
 
 ---
 
-## 4. PermissionGuard — Dois Modos de Avaliação
+## 4. Cadeia de Guards — Três Camadas de Proteção
 
-O `PermissionGuard` em `@hub/shared-module/authorization` opera em dois modos:
+Toda rota tenant-scoped deve empilhar **três guards** nesta ordem:
+
+```
+@UseGuards(JwtAuthGuard)          ← 1. valida JWT, popula request.user (sem DB)
+@UseGuards(TenantContextGuard)    ← 2. verifica membership no token (sem DB)
+@UseGuards(PermissionGuard)       ← 3. verifica permissão específica (sem DB / fallback DB)
+```
+
+### JwtAuthGuard
+
+Verifica assinatura e expiração do token JWT, revogação via Redis denylist, e popula `request.user` com o `Payload`. Lança `UnauthorizedException` (401) se inválido.
+
+### TenantContextGuard
+
+Implementado em `@hub/shared-module/authorization`. Extrai o `:tenantId` (ou `:id`) da URL e verifica se `user.tenants[tenantId]` existe no payload do token — **sem consulta ao banco**.
+
+```
+params.tenantId (ou params.id) → tenantId
+user.tenants[tenantId] existe?
+  ├─ SIM → passa para o próximo guard
+  └─ NÃO → ForbiddenException (403) "account não é membro do tenant"
+```
+
+Regra: **um account só pode acessar dados de tenants nos quais é membro ativo**. A membership é validada pelo claim `tenants` embutido no token no momento do login — sem round-trip ao banco por request.
+
+### PermissionGuard
+
+Opera em dois modos após o `TenantContextGuard` já ter garantido a membership:
 
 ```
 header X-Tenant-Id presente?
@@ -191,38 +223,63 @@ O tenant ativo é sempre determinado pelo header `X-Tenant-Id`, nunca pelo token
 
 ---
 
-## 5. Verificação de Tenant nos Outros Módulos
+## 5. Padrão de Controller Tenant-Scoped
 
-Qualquer módulo que retorna dados multi-tenant deve verificar dois pontos:
-
-1. **`PermissionGuard` via `X-Tenant-Id` header** — garante que o account tem permissão naquele tenant
-2. **Filtro de dados pelo mesmo `X-Tenant-Id`** — garante que o service retorna só dados daquele tenant
+Qualquer rota que acessa dados de um tenant específico deve seguir o padrão abaixo. São **três camadas** obrigatórias:
 
 ```typescript
-// Controller em qualquer módulo
-@Get()
-@Permission('billing.invoice.read')
-@UseGuards(PermissionGuard)
-findAll(@Headers('x-tenant-id') tenantId: string) {
-  // tenantId já foi validado contra user.tenants no PermissionGuard
-  return this.invoiceService.findAll(tenantId);
+// No nível da classe (aplicado a todas as rotas)
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard) // 1. autentica o token
+@UseGuards(TenantContextGuard) // 2. verifica membership no tenant da URL
+@Controller('tenants/:tenantId/invoices')
+export class InvoiceController {
+  // No nível do método
+  @Get()
+  @Permission('billing.invoice.read')
+  @UseGuards(PermissionGuard) // 3. verifica permissão específica
+  findAll(
+    @Param('tenantId') tenantId: string,
+    // Não ler X-Tenant-Id manualmente — TenantContextGuard já garantiu o tenantId da URL
+  ) {
+    return this.invoiceService.findAll(tenantId);
+  }
 }
 ```
 
-Isso garante que um account com acesso a múltiplos tenants não veja dados de um tenant que não estava no header da requisição.
+> **Regra**: o `tenantId` da URL é a fonte da verdade para filtrar dados. O `TenantContextGuard` garantiu que o account é membro daquele tenant. O `PermissionGuard` garantiu que tem a permissão. O `Service` filtra os dados pelo mesmo `tenantId`.
+
+### Nos módulos externos (billing, CRM etc.)
+
+Controllers em outros pacotes usam os guards do `@hub/shared-module/authorization`:
+
+```typescript
+import {
+  JwtAuthGuard,
+  TenantContextGuard,
+  PermissionGuard,
+  Permission,
+} from '@hub/shared-module/authorization';
+```
+
+O `X-Tenant-Id` header continua necessário para o `PermissionGuard` (fast path via token). O `:tenantId` da URL é usado pelo `TenantContextGuard` para validar membership. Ambos devem ser consistentes — o cliente envia `X-Tenant-Id: <uuid>` igual ao `:tenantId` presente na URL.
 
 ---
 
 ## 6. Entidades
 
-| Tabela | Propósito |
-|--------|-----------|
-| `SystemModules` | Catálogo de módulos do sistema (slug único) |
-| `SystemResources` | Recursos dentro de cada módulo (slug + ModuleId FK) |
-| `Permissions` | Ação sobre um recurso — Name gerado, ModuleId FK, ResourceId FK |
-| `TenantRoles` | Papel definido dentro de um tenant |
-| `TenantRolePermissions` | Mapeamento role → permission com AllowedLevel e Mode |
-| `AccountTenants` | Membership account ↔ tenant com TenantRoleId e ExtraPermissions |
+| Tabela                     | Propósito                                                                                            |
+| -------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `SystemModules`            | Catálogo de módulos da plataforma (slug único) — gerenciado por código via `IDENTITY_MODULE_CATALOG` |
+| `SystemResources`          | Recursos dentro de cada módulo (slug + ModuleId FK) — gerenciado por código                          |
+| `Permissions`              | Ação sobre um recurso — Name gerado, ModuleId FK, ResourceId FK — semeado de `IdentityPermissions`   |
+| `TenantRoles`              | Papel definido dentro de um tenant                                                                   |
+| `TenantRolePermissions`    | Mapeamento role → permission com AllowedLevel e Mode                                                 |
+| `AccountTenants`           | Membership account ↔ tenant com TenantRoleId (indexado) e status                                 |
+| `TenantModules`            | Módulos habilitados por tenant (TenantId + SystemModuleId únicos)                                    |
+| `AccountTenantPermissions` | Permissões extras por membership (AccountTenantId + PermissionId + Mode grant/deny)                  |
+| `Profiles`                 | Nome, e-mail, telefone, CPF, `BirthDate`, foto                                                       |
+| `Addresses`                | Endereço com `Latitude`/`Longitude` `numeric(9,6)` — padrão Google Maps                              |
 
 ---
 
@@ -230,27 +287,143 @@ Isso garante que um account com acesso a múltiplos tenants não veja dados de u
 
 - `SystemModuleRepository` — `findBySlug`, `findAllActive`
 - `SystemResourceRepository` — `findBySlugAndModule`, `findAllByModule`
+- `PermissionRepository` — `findByName`, `findAllByModule`, `findAllByResource`
+- `TenantModuleRepository` — `findAllByTenant`, `isModuleActive`, `findByTenantAndModule`
+- `AccountTenantPermissionRepository` — `findByAccountTenantAndPermission`
+- `AddressRepository` — `findAllByProfile`, `findByIdAndProfile`
 
 ---
 
-## 8. Migrations
+## 8. CatalogModule — Catálogo Gerenciado por Código
 
-| Migration | Conteúdo |
-|-----------|----------|
-| `1775608136301` | Schema inicial completo |
-| `1775676224289` | Cria `SystemModules`, `SystemResources`; substitui `Module`/`Resource` strings em `Permissions` por FKs `ModuleId`/`ResourceId`; remove `LastLoginAt` de `Accounts` |
+O catálogo de módulos, recursos e permissões **não é gerenciado via CRUD**. É definido em código e sincronizado automaticamente no boot.
+
+O `CatalogSeedService` usa `createOrRestore` do `DefaultTypeOrmRepository` para cada registro:
+
+- Busca incluindo soft-deleted (evita violação de partial unique index)
+- Restaura automaticamente registros soft-deleted
+- Cria novos registros quando não existem
+- Não altera registros já ativos
+
+Todos os unique indexes das entidades usam **partial index** (`WHERE "DeletedAt" IS NULL`), permitindo reutilização de slugs/nomes após soft delete.
+
+### Fontes de verdade (`shared/module/authorization`)
+
+```typescript
+// Módulos e recursos da plataforma
+IDENTITY_MODULE_CATALOG = [
+  {
+    slug: 'identity',
+    name: 'Identity',
+    resources: [
+      { slug: 'tenant', name: 'Tenant' },
+      { slug: 'tenant-role', name: 'Tenant Role' },
+      // ...
+    ],
+  },
+];
+
+// Permissões — formato: {module}.{resource}.{action}
+IdentityPermissions = {
+  TENANT_VIEW: 'identity.tenant.view',
+  TENANT_ROLE_CREATE: 'identity.tenant-role.create',
+  ADDRESS_LIST: 'identity.address.list',
+  ADDRESS_VIEW: 'identity.address.view',
+  ADDRESS_CREATE: 'identity.address.create',
+  ADDRESS_UPDATE: 'identity.address.update',
+  ADDRESS_DELETE: 'identity.address.delete',
+  // ...
+};
+```
+
+### `CatalogSeedService` (OnModuleInit)
+
+No boot da aplicação, faz upsert idempotente:
+
+1. Cria/atualiza `SystemModules` a partir de `IDENTITY_MODULE_CATALOG`
+2. Cria/atualiza `SystemResources` a partir dos `resources[]` de cada módulo
+3. Cria `Permissions` parseando cada valor de `IdentityPermissions` (`module.resource.action`)
+
+**Adicionar módulo/permissão**: editar as constantes em `shared/module/authorization` → reiniciar a aplicação.
+
+### HTTP (read-only)
+
+| Rota                                           | Permissão             |
+| ---------------------------------------------- | --------------------- |
+| `GET /catalog/modules`                         | `CATALOG_MODULE_LIST` |
+| `GET /catalog/modules/:id`                     | `CATALOG_MODULE_VIEW` |
+| `GET /catalog/modules/:moduleId/resources`     | `CATALOG_MODULE_LIST` |
+| `GET /catalog/modules/:moduleId/resources/:id` | `CATALOG_MODULE_VIEW` |
+
+Nenhum POST/PATCH/DELETE exposto — o catálogo é imutável via API.
 
 ---
 
-## 9. O que ainda falta
+## 9. Migrations
 
-- [ ] **Opção B de ExtraPermissions** — tabela `AccountTenantPermission` para auditoria completa (decisão atual: manter jsonb)
-- [x] **Seed inicial de SystemModules/SystemResources/Permissions** — executado; scripts em `persistence/seed-system-modules.ts` e `persistence/run-seed.ts`
-- [x] **Onboarding de tenant** — `POST /auth/onboarding/tenant` cria Tenant + AccountTenant em transação atômica
+| Migration       | Conteúdo                                                                                                                                                                                                                                                                                                                    |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `1776300000000` | **Migração consolidada** — schema completo do zero; substitui todas as 6 anteriores. Inclui: todas as tabelas com colunas FK como `uuid`, índices parciais, triggers de sincronização de e-mail (3 triggers), `TenantModules`, `AccountTenantPermissions`, `BirthDate` em `Profiles`, `Latitude`/`Longitude` em `Addresses` |
+
+---
+
+## 10. O que ainda falta
+
+- [x] **Opção B de ExtraPermissions** — tabela `AccountTenantPermissions`; `ExtraPermissions` jsonb removido
+- [x] **Seed de SystemModules/SystemResources/Permissions** — `CatalogSeedService` (OnModuleInit) via `IDENTITY_MODULE_CATALOG` + `IdentityPermissions`
+- [x] **Onboarding de tenant** — `POST /auth/onboarding/tenant`
 - [x] **Gerenciamento de memberships** — `POST/GET/DELETE /tenants/:id/members`
-- [x] **CRUD Tenant** — `GET/PATCH /tenants/:id` implementados
-- [x] **Controller de Profile** — `GET /profiles/me`, `GET/PATCH /profiles/:id` implementados
-- [x] **Testes e2e dos novos controllers** — 4 suites: `auth.e2e-spec` (signup/signin/refresh/logout), `auth-email-verification` (verify-email/resend), `tenant` (onboarding/CRUD/members/roles), `profile` (me/id/update). 58 testes passando.
+- [x] **TenantContextGuard criado e exportado**
+- [x] **Aplicar TenantContextGuard nos controllers** — `TenantController`, `AccountTenantController`, `TenantRoleController`, `TenantModuleController`
+- [x] **Migração consolidada** — 6 migrations fundidas em `1776300000000`
+- [x] **Colunas FK como `uuid`** — corrigidas em todas as entidades
+- [x] **3 triggers de e-mail** — `trg_set_profile_email_on_insert`, `trg_sync_profile_email_on_account_update`, `trg_enforce_profile_email_from_account`
+- [x] **CatalogModule read-only** — sem CRUD; catálogo gerenciado por código
+- [x] **`BirthDate` em Profile** — coluna `date` nullable
+- [x] **`Latitude`/`Longitude` em Address** — `numeric(9,6)`, substitui `Location varchar`
+- [x] **CRUD de endereços (self-service)** — `MeController`: `GET/POST/PATCH/DELETE /auth/me/addresses`; JWT apenas; `AddressService` resolve `profileId` via `accountId`
+- [x] **CRUD de endereços (tenant-admin)** — `TenantMemberAddressController`: `GET/POST/PATCH/DELETE /tenants/:tenantId/members/:accountId/addresses`; verifica membership antes de qualquer operação
+- [x] **`MeController` consolidado** — `GET /auth/me`, `PATCH /auth/me` e rotas de endereços movidos para `me.controller.ts`
+- [x] **Testes e2e** — `auth`, `tenant`, `tenant-roles`, `system-modules` (agora `/catalog/modules`), `permission-catalog`
+
+---
+
+## 11. Plano: Módulos por Tenant (TenantModule) — ✅ Implementado
+
+### Cadeia de entidades atualizada
+
+```
+Account
+  └─ AccountTenant (AccountId + TenantId + TenantRoleId)
+        └─ TenantRoleId → TenantRole
+                              └─ TenantRolePermission → Permission → SystemModule
+                                                                         ↑
+                                                            TenantModule (Tenant habilitou?)
+```
+
+### Artefatos
+
+| Arquivo                                                      | Responsabilidade                                                  | Status |
+| ------------------------------------------------------------ | ----------------------------------------------------------------- | ------ |
+| `persistence/entities/tenantModules.entities.ts`             | Entidade `TenantModule`                                           | ✅     |
+| `persistence/repository/tenant-module.typeorm.repository.ts` | `findAllByTenant`, `isModuleActive`, `findByTenantAndModule`      | ✅     |
+| `tenant/core/services/tenant-module.service.ts`              | `enableModule`, `disableModule`, `listModules`, `isModuleEnabled` | ✅     |
+| `tenant/http/rest/tenant-module.controller.ts`               | `GET/POST/DELETE /tenants/:tenantId/modules`                      | ✅     |
+| `tenant/http/dto/request/enable-tenant-module.dto.ts`        | `{ SystemModuleId: string }`                                      | ✅     |
+
+### Validações implementadas
+
+**`TenantRoleService.addPermission`** — verifica que `Permission.ModuleId` está ativo em `TenantModules` para o tenant do role (somente módulos habilitados podem receber permissões).
+
+**`AccountTenantService.addMember`** — verifica que `TenantRole.TenantId === input.TenantId`.
+
+### Rotas
+
+| Método   | Rota                                   | Permissão                       |
+| -------- | -------------------------------------- | ------------------------------- |
+| `GET`    | `/tenants/:tenantId/modules`           | `identity.tenant-module.list`   |
+| `POST`   | `/tenants/:tenantId/modules`           | `identity.tenant-module.create` |
+| `DELETE` | `/tenants/:tenantId/modules/:moduleId` | `identity.tenant-module.delete` |
 
 ---
 
@@ -261,4 +434,3 @@ Isso garante que um account com acesso a múltiplos tenants não veja dados de u
 > que prevalece sobre qualquer grant de role.
 > O resultado desta avaliação é embutido no token (`claim tenants`) no login
 > para que qualquer módulo verifique sem consultar o banco do Identity.
-

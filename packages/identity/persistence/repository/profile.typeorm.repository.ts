@@ -27,5 +27,3 @@ export class ProfileRepository extends DefaultTypeOrmRepository<Profile> {
     });
   }
 }
-  
-

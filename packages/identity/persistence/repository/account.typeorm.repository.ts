@@ -52,7 +52,10 @@ export interface AccountMeProjection {
     TenantRoleId: string | null;
     Status: string;
     tenant: { Id: string; Name: string; Slug: string; Status: string } | null;
-    permissions: Record<string, Array<{ name: string; action: string; allowedLevel: number; mode: string }>>;
+    permissions: Record<
+      string,
+      Array<{ name: string; action: string; allowedLevel: number; mode: string }>
+    >;
   }>;
 }
 
@@ -83,7 +86,6 @@ export class AccountRepository extends DefaultTypeOrmRepository<Account> {
 
   async updateRefreshToken(id: string, refreshToken: string | null): Promise<void> {
     await this.update(id, { HashRefreshToken: refreshToken });
-  
   }
 
   async resetPassword(id: string, password: string): Promise<void> {
@@ -106,10 +108,6 @@ export class AccountRepository extends DefaultTypeOrmRepository<Account> {
       await manager.softDelete(Account, { Id: id });
     });
   }
-
-
-
-
 
   async createWithProfile(input: CreateAccountWithProfileInput): Promise<Account> {
     return this.dataSource.transaction(async (manager: EntityManager) => {
@@ -170,7 +168,11 @@ export class AccountRepository extends DefaultTypeOrmRepository<Account> {
       .leftJoin(Profile, 'p', 'p."AccountId" = a."Id" AND p."DeletedAt" IS NULL')
       .leftJoin(AccountTenant, 'at', 'at."AccountId" = a."Id" AND at."DeletedAt" IS NULL')
       .leftJoin(Tenant, 't', 't."Id" = at."TenantId" AND t."DeletedAt" IS NULL')
-      .leftJoin(TenantRolePermission, 'trp', 'trp."TenantRoleId" = at."TenantRoleId" AND trp."DeletedAt" IS NULL')
+      .leftJoin(
+        TenantRolePermission,
+        'trp',
+        'trp."TenantRoleId" = at."TenantRoleId" AND trp."DeletedAt" IS NULL',
+      )
       .leftJoin(Permission, 'perm', 'perm."Id" = trp."PermissionId" AND perm."DeletedAt" IS NULL')
       .leftJoin(SystemModule, 'mod', 'mod."Id" = perm."ModuleId" AND mod."DeletedAt" IS NULL')
       .where('a."Id" = :id AND a."DeletedAt" IS NULL', { id })
@@ -180,10 +182,7 @@ export class AccountRepository extends DefaultTypeOrmRepository<Account> {
 
     const first = rows[0];
 
-    const tenantMap = new Map<
-      string,
-      AccountMeProjection['tenants'][number]
-    >();
+    const tenantMap = new Map<string, AccountMeProjection['tenants'][number]>();
 
     for (const row of rows) {
       if (!row.atId) continue;
@@ -221,7 +220,12 @@ export class AccountRepository extends DefaultTypeOrmRepository<Account> {
       Status: first.aStatus,
       CreatedAt: first.aCreatedAt,
       profile: first.pId
-        ? { Id: first.pId, FirstName: first.pFirstName!, LastName: first.pLastName, Photo: first.pPhoto }
+        ? {
+            Id: first.pId,
+            FirstName: first.pFirstName!,
+            LastName: first.pLastName,
+            Photo: first.pPhoto,
+          }
         : null,
       tenants: [...tenantMap.values()],
     };

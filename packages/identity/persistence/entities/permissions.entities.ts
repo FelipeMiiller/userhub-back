@@ -5,7 +5,7 @@ import { SystemResource } from './resources.entities';
 
 @Entity({ name: 'Permissions' })
 export class Permission extends DefaultTypeOrmEntity<Permission> {
-  @Index({ unique: true })
+  @Index({ unique: true, where: '"DeletedAt" IS NULL' })
   @Column({ nullable: false, length: 255 })
   public Name: string;
 

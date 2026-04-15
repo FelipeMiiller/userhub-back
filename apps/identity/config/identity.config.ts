@@ -1,7 +1,7 @@
 import { registerAs } from '@nestjs/config';
 import { IsInt, IsOptional, Max, Min } from 'class-validator';
 import { Transform } from 'class-transformer';
-import { configValidator } from 'shared/module/config';
+import { configValidator } from '@hub/shared-module/config';
 
 export type AppConfig = {
   port: number;
@@ -23,6 +23,6 @@ export default registerAs('identity', (): AppConfig => {
   );
 
   return {
-    port: cfg.IDENTITY_API_PORT,
+    port: cfg.IDENTITY_API_PORT || 3005,
   };
 });

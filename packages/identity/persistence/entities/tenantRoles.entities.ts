@@ -4,7 +4,7 @@ import { DefaultTypeOrmEntity } from '@hub/shared-module/persistences';
 @Entity({ name: 'TenantRoles' })
 export class TenantRole extends DefaultTypeOrmEntity<TenantRole> {
   @Index()
-  @Column({ nullable: false, length: 255 })
+  @Column({ type: 'uuid', nullable: false })
   public TenantId: string;
 
   @Column({ nullable: false, length: 100 })

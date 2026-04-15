@@ -43,9 +43,7 @@ describe('Auth — Verificação de e-mail (e2e)', () => {
     });
 
     it('retorna 400 com token ausente', async () => {
-      await request(app.getHttpServer())
-        .get('/auth/verify-email')
-        .expect(400);
+      await request(app.getHttpServer()).get('/auth/verify-email').expect(400);
     });
   });
 

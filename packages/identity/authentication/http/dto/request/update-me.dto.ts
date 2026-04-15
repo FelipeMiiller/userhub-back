@@ -21,6 +21,4 @@ export class UpdateMeRequestDto {
   @IsUrl()
   @IsOptional()
   readonly Photo?: string;
-
-
 }

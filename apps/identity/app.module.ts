@@ -1,18 +1,24 @@
 import { ClassSerializerInterceptor, Module, ValidationPipe } from '@nestjs/common';
 import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE, Reflector } from '@nestjs/core';
-import { LoggingInterceptor } from '@hub/shared-lib/core/interceptors/logging.interceptor';
-import { TransformInterceptor } from '@hub/shared-lib/core/interceptors/transform.interceptor';
-import { HealthController } from '@hub/shared-lib/core/health/http/health-check.controller';
-import { ServerExceptionFilter } from '@hub/shared-lib/core/filters/service-exception.filter';
-import { IdentityModule } from '@hub/identity/identity.module';
+import {
+  LoggingInterceptor,
+  TransformInterceptor,
+  HealthController,
+  ServerExceptionFilter,
+} from '@hub/shared-lib';
+import { IdentityModule } from '@packages/identity/identity.module';
 import { ConfigModule } from '@nestjs/config';
 import { LoggerModule, LoggerService } from '@hub/shared-module/loggers';
 import { SharedCacheRedisModule } from '@hub/shared-module/cache';
+import { sharedConfigFactory, pathEnv } from '@hub/shared-module/config';
+import identityConfig from './config/identity.config';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      load: [sharedConfigFactory, identityConfig],
+      envFilePath: pathEnv,
     }),
     SharedCacheRedisModule,
     LoggerModule,

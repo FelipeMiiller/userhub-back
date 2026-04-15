@@ -11,6 +11,9 @@ import { SystemResourceRepository } from './repository/system-resource.typeorm.r
 import { TenantRoleRepository } from './repository/tenant-role.typeorm.repository';
 import { PermissionRepository } from './repository/permission.typeorm.repository';
 import { TenantRolePermissionRepository } from './repository/tenant-role-permission.typeorm.repository';
+import { TenantModuleRepository } from './repository/tenant-module.typeorm.repository';
+import { AccountTenantPermissionRepository } from './repository/account-tenant-permission.typeorm.repository';
+import { AddressRepository } from './repository/address.typeorm.repository';
 
 @Global()
 @Module({
@@ -33,6 +36,9 @@ import { TenantRolePermissionRepository } from './repository/tenant-role-permiss
     TenantRoleRepository,
     PermissionRepository,
     TenantRolePermissionRepository,
+    TenantModuleRepository,
+    AccountTenantPermissionRepository,
+    AddressRepository,
   ],
   exports: [
     AccountRepository,
@@ -44,6 +50,9 @@ import { TenantRolePermissionRepository } from './repository/tenant-role-permiss
     TenantRoleRepository,
     PermissionRepository,
     TenantRolePermissionRepository,
+    TenantModuleRepository,
+    AccountTenantPermissionRepository,
+    AddressRepository,
   ],
 })
 export class IdentityPersistenceModule {}

@@ -3,7 +3,7 @@ import { DefaultTypeOrmEntity } from '@hub/shared-module/persistences';
 
 @Entity({ name: 'SystemModules' })
 export class SystemModule extends DefaultTypeOrmEntity<SystemModule> {
-  @Index({ unique: true })
+  @Index({ unique: true, where: '"DeletedAt" IS NULL' })
   @Column({ nullable: false, length: 100 })
   public Slug: string;
 

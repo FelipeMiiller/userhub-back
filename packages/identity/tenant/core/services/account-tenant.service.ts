@@ -1,5 +1,13 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { AccountTenant, AccountTenantStatus } from '../../../persistence/entities/accountTenants.entities';
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import {
+  AccountTenant,
+  AccountTenantStatus,
+} from '../../../persistence/entities/accountTenants.entities';
 import {
   AccountTenantRepository,
   CreateTenantWithOwnerInput,
@@ -7,8 +15,12 @@ import {
 } from '../../../persistence/repository/account-tenant.typeorm.repository';
 import { AccountRepository } from '../../../persistence/repository/account.typeorm.repository';
 import { TenantRepository } from '../../../persistence/repository/tenant.typeorm.repository';
+import { TenantRoleRepository } from '../../../persistence/repository/tenant-role.typeorm.repository';
 
-export { CreateTenantWithOwnerInput, TenantWithMembership } from '../../../persistence/repository/account-tenant.typeorm.repository';
+export {
+  CreateTenantWithOwnerInput,
+  TenantWithMembership,
+} from '../../../persistence/repository/account-tenant.typeorm.repository';
 
 export interface AddMemberInput {
   AccountId: string;
@@ -23,6 +35,7 @@ export class AccountTenantService {
     private readonly accountTenantRepository: AccountTenantRepository,
     private readonly accountRepository: AccountRepository,
     private readonly tenantRepository: TenantRepository,
+    private readonly tenantRoleRepository: TenantRoleRepository,
   ) {}
 
   async findMembership(accountId: string, tenantId: string): Promise<AccountTenant | null> {
@@ -49,6 +62,17 @@ export class AccountTenantService {
 
     if (!account) throw new NotFoundException(`Account '${input.AccountId}' não encontrada`);
     if (!tenant) throw new NotFoundException(`Tenant '${input.TenantId}' não encontrado`);
+
+    if (input.TenantRoleId) {
+      const tenantRole = await this.tenantRoleRepository.findOneById(input.TenantRoleId);
+      if (!tenantRole)
+        throw new NotFoundException(`TenantRole '${input.TenantRoleId}' não encontrado`);
+      if (tenantRole.TenantId !== input.TenantId) {
+        throw new ForbiddenException(
+          `TenantRole '${input.TenantRoleId}' não pertence ao tenant '${input.TenantId}'`,
+        );
+      }
+    }
 
     const existing = await this.accountTenantRepository.findOneByAccountAndTenant(
       input.AccountId,

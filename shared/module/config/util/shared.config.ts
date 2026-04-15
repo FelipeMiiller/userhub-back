@@ -1,7 +1,6 @@
 import { IsEnum, IsOptional, IsUrl, IsString, IsNumberString } from 'class-validator';
 import { configValidator } from './config.validator';
 
-
 enum Environment {
   Development = 'development',
   Production = 'production',
@@ -27,6 +26,7 @@ class EnvironmentVariablesValidator {
   NODE_ENV: Environment = Environment.Development;
 
   @IsUrl()
+  @IsOptional()
   IDENTITY_API_URL: string;
 
   @IsString()

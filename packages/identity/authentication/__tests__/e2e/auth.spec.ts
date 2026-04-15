@@ -26,7 +26,9 @@ describe('AuthController (e2e)', () => {
   });
 
   afterAll(async () => {
-    await dataSource.query(`DELETE FROM "Accounts" WHERE "Email" LIKE 'test_user_%' OR "Email" LIKE 'e2euser_%' OR "Email" LIKE 'normal_user_%' OR "Email" LIKE 'duplicate_test_%' OR "Email" LIKE 'login_invalid_%'`);
+    await dataSource.query(
+      `DELETE FROM "Accounts" WHERE "Email" LIKE 'test_user_%' OR "Email" LIKE 'e2euser_%' OR "Email" LIKE 'normal_user_%' OR "Email" LIKE 'duplicate_test_%' OR "Email" LIKE 'login_invalid_%'`,
+    );
     await app.close();
   });
 
@@ -59,7 +61,12 @@ describe('AuthController (e2e)', () => {
 
     it('/auth/signup (POST) - não permite criar conta com email já existente', async () => {
       const email = `duplicate_test_${Date.now()}@example.com`;
-      const userData = { Email: email, Password: 'Password@123', FirstName: 'Original', LastName: 'User' };
+      const userData = {
+        Email: email,
+        Password: 'Password@123',
+        FirstName: 'Original',
+        LastName: 'User',
+      };
 
       await request(app.getHttpServer()).post('/auth/signup').send(userData).expect(201);
 
@@ -100,7 +107,12 @@ describe('AuthController (e2e)', () => {
     beforeAll(async () => {
       await request(app.getHttpServer())
         .post('/auth/signup')
-        .send({ Email: testUserEmail, Password: testUserPassword, FirstName: 'Test', LastName: 'E2E' })
+        .send({
+          Email: testUserEmail,
+          Password: testUserPassword,
+          FirstName: 'Test',
+          LastName: 'E2E',
+        })
         .expect(201);
     });
 
@@ -124,7 +136,12 @@ describe('AuthController (e2e)', () => {
       const email = `login_invalid_${Date.now()}@example.com`;
       await request(app.getHttpServer())
         .post('/auth/signup')
-        .send({ Email: email, Password: 'CorrectPassword@123', FirstName: 'Login', LastName: 'Test' })
+        .send({
+          Email: email,
+          Password: 'CorrectPassword@123',
+          FirstName: 'Login',
+          LastName: 'Test',
+        })
         .expect(201);
 
       const res = await request(app.getHttpServer())
@@ -209,5 +226,7 @@ describe('AuthController (e2e)', () => {
   });
 
   // Suprime aviso do userId não utilizado após refactor
-  afterAll(() => { void userId; });
+  afterAll(() => {
+    void userId;
+  });
 });
