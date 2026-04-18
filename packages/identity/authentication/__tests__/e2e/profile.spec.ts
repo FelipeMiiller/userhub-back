@@ -2,6 +2,8 @@ import request from 'supertest';
 import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { createIdentityApp } from '../../../__tests__/e2e/setup';
+import { accountFactory } from '../../../__tests__/factory/account.test-factory';
+import { profileFactory } from '../../../__tests__/factory/profile.test-factory';
 
 jest.mock('nodemailer', () => ({
   createTransport: jest.fn().mockReturnValue({
@@ -13,7 +15,9 @@ describe('Me / Profile (e2e)', () => {
   let app: INestApplication;
   let dataSource: DataSource;
 
-  const email = `e2e_profile_${Date.now()}@example.com`;
+  const account = accountFactory.build();
+  const profile = profileFactory.build();
+  const email = account.Email as string;
   const password = 'Profile@123';
   let accountId: string;
   let accessToken: string;
@@ -26,7 +30,7 @@ describe('Me / Profile (e2e)', () => {
     // 1. Cria account
     const signupRes = await request(app.getHttpServer())
       .post('/auth/signup')
-      .send({ Email: email, Password: password, FirstName: 'Profile', LastName: 'User' })
+      .send({ Email: email, Password: password, FirstName: profile.FirstName, LastName: profile.LastName })
       .expect(201);
     accountId = signupRes.body.data.Id;
 

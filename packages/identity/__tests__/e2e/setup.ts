@@ -53,7 +53,7 @@ export async function grantPermissionsViaTable(
   await dataSource.query(
     `INSERT INTO "SystemModules" ("Id", "Slug", "Name", "Active", "CreatedAt", "UpdatedAt")
      VALUES (gen_random_uuid(), 'identity', 'Identity', true, NOW(), NOW())
-     ON CONFLICT ("Slug") DO NOTHING`,
+     ON CONFLICT ("Slug") WHERE "DeletedAt" IS NULL DO NOTHING`,
   );
   const [mod]: Array<{ Id: string }> = await dataSource.query(
     `SELECT "Id" FROM "SystemModules" WHERE "Slug" = 'identity'`,
@@ -88,7 +88,7 @@ export async function grantPermissionsViaTable(
     await dataSource.query(
       `INSERT INTO "Permissions" ("Id", "Name", "Action", "ModuleId", "ResourceId", "CreatedAt", "UpdatedAt")
        VALUES (gen_random_uuid(), $1, $2, $3, $4, NOW(), NOW())
-       ON CONFLICT ("Name") DO NOTHING`,
+       ON CONFLICT ("Name") WHERE "DeletedAt" IS NULL DO NOTHING`,
       [permName, action, mod.Id, res.Id],
     );
   }

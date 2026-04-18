@@ -2,6 +2,8 @@ import request from 'supertest';
 import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { createIdentityApp } from '../../../__tests__/e2e/setup';
+import { accountFactory } from '../../../__tests__/factory/account.test-factory';
+import { profileFactory } from '../../../__tests__/factory/profile.test-factory';
 
 jest.mock('nodemailer', () => ({
   createTransport: jest.fn().mockReturnValue({
@@ -16,7 +18,7 @@ describe('AuthController (e2e)', () => {
   let refreshToken: string;
   let userId: string;
 
-  const testUserEmail = `test_user_${Date.now()}@example.com`;
+  const testUserEmail = accountFactory.build().Email as string;
   const testUserPassword = 'Test@123';
 
   beforeAll(async () => {
@@ -26,20 +28,18 @@ describe('AuthController (e2e)', () => {
   });
 
   afterAll(async () => {
-    await dataSource.query(
-      `DELETE FROM "Accounts" WHERE "Email" LIKE 'test_user_%' OR "Email" LIKE 'e2euser_%' OR "Email" LIKE 'normal_user_%' OR "Email" LIKE 'duplicate_test_%' OR "Email" LIKE 'login_invalid_%'`,
-    );
     await app.close();
   });
 
   describe('Registro de conta', () => {
     it('/auth/signup (POST) - cria conta com dados válidos', async () => {
-      const timestamp = Date.now();
+      const account = accountFactory.build();
+      const profile = profileFactory.build();
       const userData = {
-        Email: `e2euser_${timestamp}@example.com`,
+        Email: account.Email,
         Password: 'Test@123',
-        FirstName: 'E2E',
-        LastName: 'Test',
+        FirstName: profile.FirstName,
+        LastName: profile.LastName,
       };
 
       const res = await request(app.getHttpServer())
@@ -51,7 +51,7 @@ describe('AuthController (e2e)', () => {
 
       const userResponse = res.body.data;
       expect(userResponse).toHaveProperty('Email');
-      expect(userResponse.Email).toBe(userData.Email.toLowerCase());
+      expect(userResponse.Email).toBe(userData.Email?.toLowerCase());
       expect(userResponse.Status).toBe(true);
       expect(userResponse.CreatedAt).toBeDefined();
       expect(userResponse.UpdatedAt).toBeDefined();
@@ -60,19 +60,20 @@ describe('AuthController (e2e)', () => {
     });
 
     it('/auth/signup (POST) - não permite criar conta com email já existente', async () => {
-      const email = `duplicate_test_${Date.now()}@example.com`;
+      const account = accountFactory.build();
+      const profile = profileFactory.build();
       const userData = {
-        Email: email,
+        Email: account.Email,
         Password: 'Password@123',
-        FirstName: 'Original',
-        LastName: 'User',
+        FirstName: profile.FirstName,
+        LastName: profile.LastName,
       };
 
       await request(app.getHttpServer()).post('/auth/signup').send(userData).expect(201);
 
       const res = await request(app.getHttpServer())
         .post('/auth/signup')
-        .send({ ...userData, Password: 'DifferentPass@123', FirstName: 'Duplicate' });
+        .send({ ...userData, Password: 'DifferentPass@123', FirstName: profileFactory.build().FirstName });
 
       expect(res.status).toBe(409);
       expect(res.body).toHaveProperty('message', 'E-mail já cadastrado');
@@ -87,11 +88,13 @@ describe('AuthController (e2e)', () => {
     });
 
     it('/auth/signup (POST) - cria conta normal com sucesso', async () => {
+      const account = accountFactory.build();
+      const profile = profileFactory.build();
       const userData = {
-        Email: `normal_user_${Date.now()}@example.com`,
+        Email: account.Email,
         Password: 'Normal@123',
-        FirstName: 'Normal',
-        LastName: 'User',
+        FirstName: profile.FirstName,
+        LastName: profile.LastName,
       };
 
       const res = await request(app.getHttpServer())
@@ -105,13 +108,14 @@ describe('AuthController (e2e)', () => {
 
   describe('Login de conta', () => {
     beforeAll(async () => {
+      const profile = profileFactory.build();
       await request(app.getHttpServer())
         .post('/auth/signup')
         .send({
           Email: testUserEmail,
           Password: testUserPassword,
-          FirstName: 'Test',
-          LastName: 'E2E',
+          FirstName: profile.FirstName,
+          LastName: profile.LastName,
         })
         .expect(201);
     });
@@ -133,20 +137,21 @@ describe('AuthController (e2e)', () => {
     });
 
     it('/auth/signin (POST) - falha com credenciais inválidas', async () => {
-      const email = `login_invalid_${Date.now()}@example.com`;
+      const account = accountFactory.build();
+      const profile = profileFactory.build();
       await request(app.getHttpServer())
         .post('/auth/signup')
         .send({
-          Email: email,
+          Email: account.Email,
           Password: 'CorrectPassword@123',
-          FirstName: 'Login',
-          LastName: 'Test',
+          FirstName: profile.FirstName,
+          LastName: profile.LastName,
         })
         .expect(201);
 
       const res = await request(app.getHttpServer())
         .post('/auth/signin')
-        .send({ Email: email, Password: 'WrongPassword' })
+        .send({ Email: account.Email, Password: 'WrongPassword' })
         .expect(401);
 
       expect(res.body).toHaveProperty('message');
@@ -223,10 +228,5 @@ describe('AuthController (e2e)', () => {
         .send({ refreshToken: rToken })
         .expect(401);
     });
-  });
-
-  // Suprime aviso do userId não utilizado após refactor
-  afterAll(() => {
-    void userId;
   });
 });

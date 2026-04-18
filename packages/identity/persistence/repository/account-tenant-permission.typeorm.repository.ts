@@ -7,17 +7,36 @@ import {
   AccountTenantPermissionMode,
 } from '../entities/accountTenantPermissions.entities';
 
+export interface ExtraPermissionRow {
+  AccountTenantId: string;
+  Name: string;
+  Mode: string;
+}
+
 @Injectable()
 export class AccountTenantPermissionRepository extends DefaultTypeOrmRepository<AccountTenantPermission> {
   constructor(
     @InjectDataSource('identity')
-    dataSource: DataSource,
+    private readonly dataSource: DataSource,
   ) {
     super(AccountTenantPermission, dataSource.manager);
   }
 
   async findAllByAccountTenant(accountTenantId: string): Promise<AccountTenantPermission[]> {
     return this.findMany({ where: { AccountTenantId: accountTenantId } });
+  }
+
+  async findPermissionNamesByAccountTenants(
+    accountTenantIds: string[],
+  ): Promise<ExtraPermissionRow[]> {
+    if (!accountTenantIds.length) return [];
+    return this.dataSource.query(
+      `SELECT atp."AccountTenantId", p."Name", atp."Mode"
+       FROM "AccountTenantPermissions" atp
+       JOIN "Permissions" p ON p."Id" = atp."PermissionId"
+       WHERE atp."AccountTenantId" = ANY($1) AND atp."DeletedAt" IS NULL`,
+      [accountTenantIds],
+    );
   }
 
   async findByAccountTenantAndPermission(

@@ -3,6 +3,11 @@ import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { IdentityPermissions } from '@hub/shared-module/authorization';
 import { createIdentityApp, grantPermissionsViaTable } from '../../../__tests__/e2e/setup';
+import { accountFactory } from '../../../__tests__/factory/account.test-factory';
+import { profileFactory } from '../../../__tests__/factory/profile.test-factory';
+import { tenantFactory } from '../../../__tests__/factory/tenant.test-factory';
+import { systemModuleFactory } from '../../../__tests__/factory/system-module.test-factory';
+import { systemResourceFactory } from '../../../__tests__/factory/system-resource.test-factory';
 
 jest.mock('nodemailer', () => ({
   createTransport: jest.fn().mockReturnValue({
@@ -14,7 +19,10 @@ describe('PermissionCatalog (e2e)', () => {
   let app: INestApplication;
   let dataSource: DataSource;
 
-  const email = `e2e_permcat_${Date.now()}@example.com`;
+  const account = accountFactory.build();
+  const profile = profileFactory.build();
+  const tenant = tenantFactory.build();
+  const email = account.Email as string;
   const password = 'PermCat@123';
   let accountId: string;
   let tenantId: string;
@@ -39,7 +47,7 @@ describe('PermissionCatalog (e2e)', () => {
     // Cria account
     const signupRes = await request(app.getHttpServer())
       .post('/auth/signup')
-      .send({ Email: email, Password: password, FirstName: 'Perm', LastName: 'Test' })
+      .send({ Email: email, Password: password, FirstName: profile.FirstName, LastName: profile.LastName })
       .expect(201);
     accountId = signupRes.body.data.Id;
 
@@ -54,25 +62,27 @@ describe('PermissionCatalog (e2e)', () => {
     const onboardingRes = await request(app.getHttpServer())
       .post('/auth/onboarding/tenant')
       .set('Authorization', `bearer ${accessToken}`)
-      .send({ Name: 'PermCatTenant', Slug: `permcat-tenant-${Date.now()}` })
+      .send({ Name: tenant.Name, Slug: tenant.Slug })
       .expect(201);
     tenantId = onboardingRes.body.data.tenant.Id;
 
     // Cria SystemModule de suporte diretamente no banco
+    const sysModule = systemModuleFactory.build();
     const modResult = await dataSource.query(
       `INSERT INTO "SystemModules" ("Id", "Slug", "Name", "Active", "CreatedAt", "UpdatedAt")
-       VALUES (gen_random_uuid(), $1, $2, true, NOW(), NOW())
+       VALUES ($1, $2, $3, true, NOW(), NOW())
        RETURNING "Id"`,
-      [`e2e-permcat-mod-${Date.now()}`, 'PermCat Test Module'],
+      [sysModule.Id, sysModule.Slug, sysModule.Name],
     );
     systemModuleId = modResult[0].Id;
 
     // Cria SystemResource de suporte
+    const sysResource = systemResourceFactory.build({ ModuleId: systemModuleId });
     const resResult = await dataSource.query(
       `INSERT INTO "SystemResources" ("Id", "Slug", "Name", "ModuleId", "Active", "CreatedAt", "UpdatedAt")
-       VALUES (gen_random_uuid(), $1, $2, $3, true, NOW(), NOW())
+       VALUES ($1, $2, $3, $4, true, NOW(), NOW())
        RETURNING "Id"`,
-      [`e2e-permcat-res-${Date.now()}`, 'PermCat Resource', systemModuleId],
+      [sysResource.Id, sysResource.Slug, sysResource.Name, systemModuleId],
     );
     systemResourceId = resResult[0].Id;
 

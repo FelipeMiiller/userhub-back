@@ -16,7 +16,7 @@ Controllers:
 | Rota                             | Descrição                                                                                    |
 | -------------------------------- | -------------------------------------------------------------------------------------------- |
 | `POST /auth/signup`              | Cria Account + Profile em transação atômica, envia e-mail de boas-vindas via RabbitMQ        |
-| `POST /auth/onboarding/tenant`   | Cria Tenant e vincula ao account autenticado em transação atômica (etapa de onboarding)      |
+| `POST /auth/onboarding/tenant`   | Cria Tenant e vincula ao account autenticado (ConflictException se já tem tenant); cria role Admin com todas as permissões |
 | `POST /auth/signin`              | Login local (e-mail + senha), retorna `accessToken` (com `jti` + `tenants`) + `refreshToken` |
 | `POST /auth/signout`             | Invalida o refresh token e revoga o access token na denylist (Redis)                         |
 | `POST /auth/forgot-password`     | Gera senha temporária e envia e-mail de recuperação                                          |
@@ -131,7 +131,7 @@ Controllers expostos (somente leitura):
 | Tabela                     | Descrição                                                                                |
 | -------------------------- | ---------------------------------------------------------------------------------------- |
 | `Accounts`                 | Credenciais, provider, status                                                            |
-| `Profiles`                 | Nome, e-mail, telefone, CPF, data de nascimento, foto                                    |
+| `Profiles`                 | Nome, e-mail, telefone, data de nascimento, foto                                         |
 | `Addresses`                | Endereço vinculado ao profile com coordenadas (`Latitude`, `Longitude` — `numeric(9,6)`) |
 | `Tenants`                  | Empresa/organização com slug único                                                       |
 | `AccountTenants`           | Membership account ↔ tenant com TenantRoleId e status                                    |
@@ -164,7 +164,7 @@ Todos os unique indexes usam **partial index** com `WHERE "DeletedAt" IS NULL`, 
 | `SystemResources`          | `ModuleId`, `Slug`                     | FK + lookup por slug                               |
 | `TenantModules`            | `TenantId`, `SystemModuleId`           | Verificação de módulo ativo                        |
 
-Repositórios: `AccountRepository`, `ProfileRepository`, `AddressRepository`, `TenantRepository`, `AccountTenantRepository`.
+Repositórios: `AccountRepository`, `ProfileRepository`, `AddressRepository`, `TenantRepository`, `AccountTenantRepository`, `AccountTenantPermissionRepository`, `TenantRolePermissionRepository`.
 
 `DefaultTypeOrmRepository` (base class em `@hub/shared-module/persistences`) expõe:
 
@@ -175,7 +175,13 @@ Repositórios: `AccountRepository`, `ProfileRepository`, `AddressRepository`, `T
 
 `AccountRepository` expõe o método `createWithProfile(input: CreateAccountWithProfileInput): Promise<Account>` que cria Account + Profile em uma única transação de banco de dados. Usado tanto no `signUp` local quanto no callback do Google OAuth.
 
-`AccountTenantRepository` expõe `createTenantWithOwner(input)` que cria Tenant + AccountTenant em uma única transação. As interfaces `CreateTenantWithOwnerInput` e `TenantWithMembership` são definidas e exportadas nesta camada.
+`AccountTenantRepository` expõe `createTenantWithOwner(input)` que cria Tenant + TenantRole "Admin" (com todas as permissões, `AllowedLevel=ADMIN`) + AccountTenant em uma única transação. O account só pode criar um tenant se não possuir nenhum (verificado no service com `ConflictException`). As interfaces `CreateTenantWithOwnerInput` e `TenantWithMembership` são definidas e exportadas nesta camada.
+
+Repositórios também expõem métodos de consulta usados pelo `PermissionEvaluatorService`:
+
+- `AccountTenantRepository`: `findMembershipsByAccountAndTenant()`, `findMembershipsByAccount()`
+- `AccountTenantPermissionRepository`: `findPermissionNamesByAccountTenants()`
+- `TenantRolePermissionRepository`: `findAllowedPermissionNamesByRoles()`, `findByRolesAndResourcePrefix()`
 
 ### Integração
 

@@ -87,8 +87,10 @@ O `PermissionGuard` (em `@hub/shared-module/authorization`) faz a verificação 
 ```
 request.headers['x-tenant-id'] → tenantId
 user.tenants[tenantId] → lista de permissões
-lista.includes(permissionName) → allow/deny
+lista.includes(permissionName) ou permissionCovers(held, required) → allow/deny
 ```
+
+O fast path do `PermissionGuard` usa `hasPermissionWithHierarchy()` que combina match exato e hierárquico.
 
 Se o token não possuir o campo `tenants` (compatibilidade com tokens legados), o guard faz fallback para o `IPermissionEvaluator` que consulta o banco.
 
@@ -104,11 +106,13 @@ Após o signup, o account ainda não pertence a nenhum tenant. O fluxo de onboar
 1. POST /auth/signup    → cria Account + Profile (transação atômica)
 2. POST /auth/signin    → retorna accessToken
 3. POST /auth/onboarding/tenant { Name, Slug }
-                        → cria Tenant + AccountTenant (transação atômica)
+                        → verifica se account já tem tenants (ConflictException se sim)
+                        → cria Tenant + TenantRole "Admin" (com todas as permissões, AllowedLevel=ADMIN)
+                        → cria AccountTenant vinculado ao role Admin
                         → retorna { tenant, membership }
 ```
 
-A rota exige `Authorization: Bearer <token>` e retira o `accountId` do próprio token (`sub`). O Slug deve ser único, em lowercase e formato `kebab-case`. Após a criação, o próximo `refreshToken` já incluirá o novo `tenantId` no claim `tenants`.
+A rota exige `Authorization: Bearer <token>` e retira o `accountId` do próprio token (`sub`). O Slug deve ser único, em lowercase e formato `kebab-case`. O account só pode criar um tenant se não possuir nenhum (primeiro tenant). Após a criação, o próximo `refreshToken` já incluirá o novo `tenantId` no claim `tenants`.
 
 ### Diagrama do fluxo
 
@@ -146,22 +150,40 @@ O double-check é: **PermissionGuard** verifica se o account tem permissão no t
 
 ## 3. Regra de Avaliação
 
-`PermissionEvaluatorService.evaluate(accountId, tenantId, permissionName)` — fallback via DB:
+### Hierarquia de níveis
 
-1. Busca memberships em `AccountTenants` para `(accountId, tenantId)`
+Análise de permissão considera **hierarquia de ações** dentro do mesmo recurso (`module.resource.*`):
+
+| Nível | Enum     | Actions         |
+|-------|----------|------------------|
+| 0     | NONE     | (desconhecida)   |
+| 1     | VIEW     | `list`, `view`   |
+| 2     | CREATE   | `create`         |
+| 3     | UPDATE   | `update`         |
+| 4     | ADMIN    | `delete`         |
+
+Nível superior implica todos os inferiores para o mesmo recurso. Ex.: `identity.account-tenant.delete` (4) cobre `list` (1), `create` (2) e `update` (3).
+
+A função `permissionCovers(held, required)` verifica se `held` cobre `required` comparando módulo, recurso e nível da ação. Usada tanto no **PermissionGuard** (fast path) quanto no **PermissionEvaluatorService** (fallback DB).
+
+### `PermissionEvaluatorService.evaluate(accountId, tenantId, permissionName)` — fallback via DB:
+
+1. Busca memberships em `AccountTenants` para `(accountId, tenantId)` via `AccountTenantRepository.findMembershipsByAccountAndTenant()`
 2. Se nenhuma membership → `{ allowed: false, reason: 'no_membership' }`
-3. Se alguma membership tem `ExtraPermissions.deny` contendo o nome → `{ allowed: false, reason: 'extra_deny' }` _(deny explícito prevalece sobre tudo)_
-4. Busca `TenantRolePermissions` para os roleIds + permissionName via JOIN em `Permissions.Name`
-5. Se algum row tem `Mode = 'deny'` → `{ allowed: false, reason: 'role_deny' }`
-6. Se nenhum row de role E nenhum `ExtraPermissions.grant` com o nome → `{ allowed: false, reason: 'no_permission' }`
-7. Calcula `maxLevel` dos rows; se `ExtraPermissions.grant` satisfaz sem role, `level = 1`
-8. `PermissionService.isAllowed('allow', maxLevel)` → `{ allowed: true, effectiveLevel: maxLevel }`
+3. Busca extra permissions via `AccountTenantPermissionRepository.findPermissionNamesByAccountTenants()`
+4. Se alguma extra permission tem `Mode=deny` com match exato → `{ allowed: false, reason: 'extra_deny' }` _(deny explícito prevalece sobre tudo)_
+5. Busca `TenantRolePermissions` do mesmo recurso (`module.resource.*`) via `TenantRolePermissionRepository.findByRolesAndResourcePrefix()`
+6. Se algum row tem `Mode = 'deny'` e `permissionCovers(row, required)` → `{ allowed: false, reason: 'role_deny' }`
+7. Filtra rows de `allow` que cobrem hierarquicamente (`permissionCovers`); verifica também `ExtraPermissions.grant` com hierarquia
+8. Se nenhum covering row E nenhum extra grant hierárquico → `{ allowed: false, reason: 'no_permission' }`
+9. Calcula `maxLevel` dos covering rows; se apenas extra grant sem role, `level = 1`
+10. `PermissionService.isAllowed('allow', maxLevel)` → `{ allowed: true, effectiveLevel: maxLevel }`
 
 `PermissionEvaluatorService.getAllTenantsPermissions(accountId)`:
 
 - Retorna o mapa `{ [tenantId]: permissionNames[] }` de **todos** os tenants do account
 - Usado no login para embutir o claim `tenants` no token JWT
-- Faz uma única query para todos os roles + ExtraPermissions em paralelo
+- Usa `AccountTenantRepository.findMembershipsByAccount()` + queries paralelas nos repos de role e extra permissions
 
 `PermissionEvaluatorService.getAccountPermissions(accountId, tenantId)`:
 
@@ -278,7 +300,7 @@ O `X-Tenant-Id` header continua necessário para o `PermissionGuard` (fast path 
 | `AccountTenants`           | Membership account ↔ tenant com TenantRoleId (indexado) e status                                 |
 | `TenantModules`            | Módulos habilitados por tenant (TenantId + SystemModuleId únicos)                                    |
 | `AccountTenantPermissions` | Permissões extras por membership (AccountTenantId + PermissionId + Mode grant/deny)                  |
-| `Profiles`                 | Nome, e-mail, telefone, CPF, `BirthDate`, foto                                                       |
+| `Profiles`                 | Nome, e-mail, telefone, `BirthDate`, foto                                                            |
 | `Addresses`                | Endereço com `Latitude`/`Longitude` `numeric(9,6)` — padrão Google Maps                              |
 
 ---

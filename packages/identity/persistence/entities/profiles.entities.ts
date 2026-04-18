@@ -22,9 +22,6 @@ export class Profile extends DefaultTypeOrmEntity<Profile> {
   @Column({ type: 'varchar', nullable: true, length: 500 })
   public Photo: string | null;
 
-  @Column({ type: 'varchar', nullable: true, length: 14 })
-  public Cpf: string | null;
-
   @Column({ type: 'date', nullable: true })
   public BirthDate: Date | null;
 

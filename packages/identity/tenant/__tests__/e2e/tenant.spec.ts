@@ -3,6 +3,13 @@ import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { IdentityPermissions } from '@hub/shared-module/authorization';
 import { createIdentityApp, grantPermissionsViaTable } from '../../../__tests__/e2e/setup';
+import { accountFactory } from '../../../__tests__/factory/account.test-factory';
+import { profileFactory } from '../../../__tests__/factory/profile.test-factory';
+import { tenantFactory } from '../../../__tests__/factory/tenant.test-factory';
+import { systemModuleFactory } from '../../../__tests__/factory/system-module.test-factory';
+import { systemResourceFactory } from '../../../__tests__/factory/system-resource.test-factory';
+import { permissionFactory } from '../../../__tests__/factory/permission.test-factory';
+import { tenantModuleFactory } from '../../../__tests__/factory/tenant-module.test-factory';
 
 jest.mock('nodemailer', () => ({
   createTransport: jest.fn().mockReturnValue({
@@ -51,7 +58,10 @@ describe('Onboarding & Tenant (e2e)', () => {
   let app: INestApplication;
   let dataSource: DataSource;
 
-  const email = `e2e_tenant_${Date.now()}@example.com`;
+  const account = accountFactory.build();
+  const profileData = profileFactory.build();
+  const tenantData = tenantFactory.build();
+  const email = account.Email as string;
   const password = 'Tenant@123';
   let accountId: string;
   let tenantId: string;
@@ -65,7 +75,7 @@ describe('Onboarding & Tenant (e2e)', () => {
     // 1. Cria account
     const signupRes = await request(app.getHttpServer())
       .post('/auth/signup')
-      .send({ Email: email, Password: password, FirstName: 'Tenant', LastName: 'Owner' })
+      .send({ Email: email, Password: password, FirstName: profileData.FirstName, LastName: profileData.LastName })
       .expect(201);
     accountId = signupRes.body.data.Id;
 
@@ -83,18 +93,16 @@ describe('Onboarding & Tenant (e2e)', () => {
   });
 
   describe('POST /auth/onboarding/tenant', () => {
-    const slug = `e2e-slug-${Date.now()}`;
-
     it('cria tenant e membership para o account autenticado', async () => {
       const res = await request(app.getHttpServer())
         .post('/auth/onboarding/tenant')
         .set('Authorization', `bearer ${accessToken}`)
-        .send({ Name: 'E2E Tenant', Slug: slug })
+        .send({ Name: tenantData.Name, Slug: tenantData.Slug })
         .expect(201);
 
       expect(res.body.data).toHaveProperty('tenant');
       expect(res.body.data).toHaveProperty('membership');
-      expect(res.body.data.tenant.Slug).toBe(slug);
+      expect(res.body.data.tenant.Slug).toBe(tenantData.Slug);
       tenantId = res.body.data.tenant.Id;
 
       // Concede permissões e re-loga para token com claims corretos
@@ -112,7 +120,7 @@ describe('Onboarding & Tenant (e2e)', () => {
       await request(app.getHttpServer())
         .post('/auth/onboarding/tenant')
         .set('Authorization', `bearer ${accessToken}`)
-        .send({ Name: 'Outro Tenant', Slug: slug })
+        .send({ Name: tenantFactory.build().Name, Slug: tenantData.Slug })
         .expect(409);
     });
 
@@ -120,14 +128,15 @@ describe('Onboarding & Tenant (e2e)', () => {
       await request(app.getHttpServer())
         .post('/auth/onboarding/tenant')
         .set('Authorization', `bearer ${accessToken}`)
-        .send({ Name: 'Sem Slug' })
+        .send({ Name: tenantFactory.build().Name })
         .expect(400);
     });
 
     it('retorna 401 sem autenticação', async () => {
+      const t = tenantFactory.build();
       await request(app.getHttpServer())
         .post('/auth/onboarding/tenant')
-        .send({ Name: 'Não Autorizado', Slug: `sem-auth-${Date.now()}` })
+        .send({ Name: t.Name, Slug: t.Slug })
         .expect(401);
     });
   });
@@ -158,14 +167,15 @@ describe('Onboarding & Tenant (e2e)', () => {
 
   describe('PATCH /tenants/:id', () => {
     it('atualiza nome do tenant', async () => {
+      const updatedName = tenantFactory.build().Name!;
       const res = await request(app.getHttpServer())
         .patch(`/tenants/${tenantId}`)
         .set('Authorization', `bearer ${accessToken}`)
         .set('x-tenant-id', tenantId)
-        .send({ Name: 'Tenant Atualizado' })
+        .send({ Name: updatedName })
         .expect(200);
 
-      expect(res.body.data.Name).toBe('Tenant Atualizado');
+      expect(res.body.data.Name).toBe(updatedName);
     });
 
     it('retorna 403 para tenant inexistente (guard rejeita antes do service)', async () => {
@@ -173,7 +183,7 @@ describe('Onboarding & Tenant (e2e)', () => {
         .patch('/tenants/00000000-0000-0000-0000-000000000000')
         .set('Authorization', `bearer ${accessToken}`)
         .set('x-tenant-id', tenantId)
-        .send({ Name: 'Não Existe' })
+        .send({ Name: tenantFactory.build().Name })
         .expect(403);
     });
   });
@@ -193,18 +203,19 @@ describe('Onboarding & Tenant (e2e)', () => {
 
   describe('POST /tenants/:tenantId/members', () => {
     let secondAccountId: string;
-    const secondEmail = `e2e_member_${Date.now()}@example.com`;
+    const secondAccount = accountFactory.build();
+    const secondProfile = profileFactory.build();
 
     beforeAll(async () => {
       const signupRes = await request(app.getHttpServer())
         .post('/auth/signup')
-        .send({ Email: secondEmail, Password: 'Member@123', FirstName: 'Member', LastName: 'Test' })
+        .send({ Email: secondAccount.Email, Password: 'Member@123', FirstName: secondProfile.FirstName, LastName: secondProfile.LastName })
         .expect(201);
       secondAccountId = signupRes.body.data.Id;
     });
 
     afterAll(async () => {
-      await dataSource.query(`DELETE FROM "Accounts" WHERE "Email" = $1`, [secondEmail]);
+      await dataSource.query(`DELETE FROM "Accounts" WHERE "Email" = $1`, [secondAccount.Email]);
     });
 
     it('adiciona account ao tenant', async () => {
@@ -240,16 +251,17 @@ describe('Onboarding & Tenant (e2e)', () => {
 
   describe('DELETE /tenants/:tenantId/members/:accountId', () => {
     let memberAccountId: string;
-    const memberEmail = `e2e_del_member_${Date.now()}@example.com`;
+    const memberAccount = accountFactory.build();
+    const memberProfile = profileFactory.build();
 
     beforeAll(async () => {
       const signupRes = await request(app.getHttpServer())
         .post('/auth/signup')
         .send({
-          Email: memberEmail,
+          Email: memberAccount.Email,
           Password: 'DelMember@123',
-          FirstName: 'Del',
-          LastName: 'Member',
+          FirstName: memberProfile.FirstName,
+          LastName: memberProfile.LastName,
         })
         .expect(201);
       memberAccountId = signupRes.body.data.Id;
@@ -263,7 +275,7 @@ describe('Onboarding & Tenant (e2e)', () => {
     });
 
     afterAll(async () => {
-      await dataSource.query(`DELETE FROM "Accounts" WHERE "Email" = $1`, [memberEmail]);
+      await dataSource.query(`DELETE FROM "Accounts" WHERE "Email" = $1`, [memberAccount.Email]);
     });
 
     it('remove account do tenant', async () => {
@@ -297,14 +309,15 @@ describe('Onboarding & Tenant (e2e)', () => {
 
   describe('POST /tenants/:tenantId/roles', () => {
     it('cria um role para o tenant', async () => {
+      const role = tenantFactory.build();
       const res = await request(app.getHttpServer())
         .post(`/tenants/${tenantId}/roles`)
         .set('Authorization', `bearer ${accessToken}`)
         .set('x-tenant-id', tenantId)
-        .send({ Name: 'Admin', Description: 'Role administrativo' })
+        .send({ Name: role.Name, Description: role.Name })
         .expect(201);
 
-      expect(res.body.data).toHaveProperty('Name', 'Admin');
+      expect(res.body.data).toHaveProperty('Name', role.Name);
       expect(res.body.data).toHaveProperty('TenantId', tenantId);
     });
 
@@ -313,7 +326,7 @@ describe('Onboarding & Tenant (e2e)', () => {
         .post(`/tenants/${tenantId}/roles`)
         .set('Authorization', `bearer ${accessToken}`)
         .set('x-tenant-id', tenantId)
-        .send({ Description: 'Sem nome' })
+        .send({ Description: tenantFactory.build().Name })
         .expect(400);
     });
   });
@@ -338,11 +351,12 @@ describe('Onboarding & Tenant (e2e)', () => {
       );
 
       // Cria um SystemModule diretamente no banco para os testes
+      const sysModule = systemModuleFactory.build();
       const result = await dataSource.query(
         `INSERT INTO "SystemModules" ("Id", "Slug", "Name", "Description", "Active", "CreatedAt", "UpdatedAt")
-         VALUES (gen_random_uuid(), $1, $2, $3, true, now(), now())
+         VALUES ($1, $2, $3, $4, true, now(), now())
          RETURNING "Id"`,
-        [`e2e-module-${Date.now()}`, 'E2E Test Module', 'Módulo para testes e2e'],
+        [sysModule.Id, sysModule.Slug, sysModule.Name, sysModule.Description],
       );
       systemModuleId = result[0].Id;
     });
@@ -436,49 +450,50 @@ describe('Onboarding & Tenant (e2e)', () => {
 
     beforeAll(async () => {
       // Cria SystemModule e habilita-o no tenant
+      const sysModule = systemModuleFactory.build();
       const moduleResult = await dataSource.query(
         `INSERT INTO "SystemModules" ("Id", "Slug", "Name", "Description", "Active", "CreatedAt", "UpdatedAt")
-         VALUES (gen_random_uuid(), $1, $2, $3, true, now(), now())
+         VALUES ($1, $2, $3, $4, true, now(), now())
          RETURNING "Id"`,
-        [
-          `e2e-perm-module-${Date.now()}`,
-          'E2E Permission Module',
-          'Módulo para testes de permissão',
-        ],
+        [sysModule.Id, sysModule.Slug, sysModule.Name, sysModule.Description],
       );
       systemModuleId = moduleResult[0].Id;
 
       // Habilita módulo no tenant
+      const tm = tenantModuleFactory.build({ TenantId: tenantId, SystemModuleId: systemModuleId });
       await dataSource.query(
         `INSERT INTO "TenantModules" ("Id", "TenantId", "SystemModuleId", "Status", "CreatedAt", "UpdatedAt")
-         VALUES (gen_random_uuid(), $1, $2, 'active', now(), now())`,
-        [tenantId, systemModuleId],
+         VALUES ($1, $2, $3, 'active', now(), now())`,
+        [tm.Id, tenantId, systemModuleId],
       );
 
       // Cria SystemResource para a permission
+      const sysResource = systemResourceFactory.build({ ModuleId: systemModuleId });
       const resourceResult = await dataSource.query(
         `INSERT INTO "SystemResources" ("Id", "Slug", "Name", "ModuleId", "CreatedAt", "UpdatedAt")
-         VALUES (gen_random_uuid(), $1, $2, $3, now(), now())
+         VALUES ($1, $2, $3, $4, now(), now())
          RETURNING "Id"`,
-        [`e2e-resource-${Date.now()}`, 'E2E Resource', systemModuleId],
+        [sysResource.Id, sysResource.Slug, sysResource.Name, systemModuleId],
       );
       const resourceId = resourceResult[0].Id;
 
       // Cria Permission
+      const perm = permissionFactory.build({ ModuleId: systemModuleId, ResourceId: resourceId, Action: 'read' });
       const permResult = await dataSource.query(
         `INSERT INTO "Permissions" ("Id", "Name", "ModuleId", "ResourceId", "Action", "CreatedAt", "UpdatedAt")
-         VALUES (gen_random_uuid(), $1, $2, $3, 'read', now(), now())
+         VALUES ($1, $2, $3, $4, $5, now(), now())
          RETURNING "Id"`,
-        [`e2e.perm-module-${Date.now()}.resource.read`, systemModuleId, resourceId],
+        [perm.Id, perm.Name, systemModuleId, resourceId, perm.Action],
       );
       permissionId = permResult[0].Id;
 
       // Cria role para os testes de permissão
+      const roleData = tenantFactory.build();
       const roleRes = await request(app.getHttpServer())
         .post(`/tenants/${tenantId}/roles`)
         .set('Authorization', `bearer ${accessToken}`)
         .set('x-tenant-id', tenantId)
-        .send({ Name: `PermRole-${Date.now()}`, Description: 'Role para testes de permissão' })
+        .send({ Name: roleData.Name, Description: roleData.Name })
         .expect(201);
       roleId = roleRes.body.data.Id;
     });

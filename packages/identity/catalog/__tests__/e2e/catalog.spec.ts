@@ -3,6 +3,9 @@ import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { IdentityPermissions } from '@hub/shared-module/authorization';
 import { createIdentityApp, grantPermissionsViaTable } from '../../../__tests__/e2e/setup';
+import { accountFactory } from '../../../__tests__/factory/account.test-factory';
+import { profileFactory } from '../../../__tests__/factory/profile.test-factory';
+import { tenantFactory } from '../../../__tests__/factory/tenant.test-factory';
 
 jest.mock('nodemailer', () => ({
   createTransport: jest.fn().mockReturnValue({
@@ -14,7 +17,10 @@ describe('SystemModules & SystemResources (e2e)', () => {
   let app: INestApplication;
   let dataSource: DataSource;
 
-  const email = `e2e_sysmod_${Date.now()}@example.com`;
+  const account = accountFactory.build();
+  const profile = profileFactory.build();
+  const tenant = tenantFactory.build();
+  const email = account.Email as string;
   const password = 'SysMod@123';
   let accountId: string;
   let tenantId: string;
@@ -33,7 +39,7 @@ describe('SystemModules & SystemResources (e2e)', () => {
     // Cria account
     const signupRes = await request(app.getHttpServer())
       .post('/auth/signup')
-      .send({ Email: email, Password: password, FirstName: 'SysMod', LastName: 'Test' })
+      .send({ Email: email, Password: password, FirstName: profile.FirstName, LastName: profile.LastName })
       .expect(201);
     accountId = signupRes.body.data.Id;
 
@@ -48,7 +54,7 @@ describe('SystemModules & SystemResources (e2e)', () => {
     const onboardingRes = await request(app.getHttpServer())
       .post('/auth/onboarding/tenant')
       .set('Authorization', `bearer ${accessToken}`)
-      .send({ Name: 'SysModTenant', Slug: `sysmod-tenant-${Date.now()}` })
+      .send({ Name: tenant.Name, Slug: tenant.Slug })
       .expect(201);
     tenantId = onboardingRes.body.data.tenant.Id;
 

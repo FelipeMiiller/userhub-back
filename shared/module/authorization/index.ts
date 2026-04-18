@@ -13,3 +13,4 @@ export * from './core/decorator/permission.decorator';
 export * from './core/enum/role.enum';
 export * from './core/enum/permission-level.enum';
 export * from './core/permissions/identity.permissions';
+export * from './core/permissions/permission-hierarchy';

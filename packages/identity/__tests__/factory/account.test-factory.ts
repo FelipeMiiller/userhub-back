@@ -4,7 +4,7 @@ import { Account } from '../../persistence/entities/accounts.entities';
 
 export const accountFactory = Factory.Sync.makeFactory<Partial<Account>>({
   Id: Factory.each(() => faker.string.uuid()),
-  Email: Factory.each(() => faker.internet.email()),
+  Email: Factory.each(() => faker.internet.email().toLowerCase()),
   Password: Factory.each(() => faker.internet.password()),
   HashRefreshToken: null,
   Provider: 'local',

@@ -80,7 +80,6 @@ export class Migration1776300000000 implements MigrationInterface {
         "Email"       character varying(255),
         "Phone"       character varying(30),
         "Photo"       character varying(500),
-        "Cpf"         character varying(14),
         "BirthDate"   date,
         "AccountId"   uuid,
         CONSTRAINT "PK_f8e4af27ec2538cacf23e883337" PRIMARY KEY ("Id")

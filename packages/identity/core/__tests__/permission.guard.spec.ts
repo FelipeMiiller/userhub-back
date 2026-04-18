@@ -2,6 +2,8 @@ import { PermissionGuard } from '../guards/permission.guard';
 import { Reflector } from '@nestjs/core';
 import { ExecutionContext } from '@nestjs/common';
 import { PermissionEvaluatorService } from '../services/permission-evaluator.service';
+import { accountFactory } from '../../__tests__/factory/account.test-factory';
+import { tenantFactory } from '../../__tests__/factory/tenant.test-factory';
 
 describe('PermissionGuard (Guarda de Permissão)', () => {
   it('permite quando o avaliador retorna allowed', async () => {
@@ -15,9 +17,11 @@ describe('PermissionGuard (Guarda de Permissão)', () => {
     const handler = jest.fn();
     jest.spyOn(reflector, 'get').mockReturnValue('sales.order.view');
 
+    const account = accountFactory.build();
+    const tenant = tenantFactory.build();
     const req = {
-      user: { sub: 'acc1' },
-      headers: { 'x-tenant-id': 'tenant1' },
+      user: { sub: account.Id },
+      headers: { 'x-tenant-id': tenant.Id },
     } as unknown as Request;
     const ctx = {
       switchToHttp: () => ({ getRequest: () => req }),
@@ -26,7 +30,7 @@ describe('PermissionGuard (Guarda de Permissão)', () => {
 
     const allowed = await guard.canActivate(ctx as any);
     expect(allowed).toBe(true);
-    expect(evaluator.evaluate).toHaveBeenCalledWith('acc1', 'tenant1', 'sales.order.view');
+    expect(evaluator.evaluate).toHaveBeenCalledWith(account.Id, tenant.Id, 'sales.order.view');
   });
 
   it('nega quando não há info de tenant/conta', async () => {

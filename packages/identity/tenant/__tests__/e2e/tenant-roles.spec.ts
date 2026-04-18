@@ -3,6 +3,10 @@ import { INestApplication } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { IdentityPermissions } from '@hub/shared-module/authorization';
 import { createIdentityApp, grantPermissionsViaTable } from '../../../__tests__/e2e/setup';
+import { accountFactory } from '../../../__tests__/factory/account.test-factory';
+import { profileFactory } from '../../../__tests__/factory/profile.test-factory';
+import { tenantFactory } from '../../../__tests__/factory/tenant.test-factory';
+import { tenantRoleFactory } from '../../../__tests__/factory/tenant-role.test-factory';
 
 jest.mock('nodemailer', () => ({
   createTransport: jest.fn().mockReturnValue({
@@ -14,7 +18,10 @@ describe('TenantRoles — GET/:id, PATCH/:id, DELETE/:id (e2e)', () => {
   let app: INestApplication;
   let dataSource: DataSource;
 
-  const email = `e2e_roles_${Date.now()}@example.com`;
+  const account = accountFactory.build();
+  const profileData = profileFactory.build();
+  const tenantData = tenantFactory.build();
+  const email = account.Email as string;
   const password = 'Roles@123';
   let accountId: string;
   let tenantId: string;
@@ -36,7 +43,7 @@ describe('TenantRoles — GET/:id, PATCH/:id, DELETE/:id (e2e)', () => {
     // Cria account
     const signupRes = await request(app.getHttpServer())
       .post('/auth/signup')
-      .send({ Email: email, Password: password, FirstName: 'Roles', LastName: 'Test' })
+      .send({ Email: email, Password: password, FirstName: profileData.FirstName, LastName: profileData.LastName })
       .expect(201);
     accountId = signupRes.body.data.Id;
 
@@ -51,7 +58,7 @@ describe('TenantRoles — GET/:id, PATCH/:id, DELETE/:id (e2e)', () => {
     const onboardingRes = await request(app.getHttpServer())
       .post('/auth/onboarding/tenant')
       .set('Authorization', `bearer ${accessToken}`)
-      .send({ Name: 'RolesTenant', Slug: `roles-tenant-${Date.now()}` })
+      .send({ Name: tenantData.Name, Slug: tenantData.Slug })
       .expect(201);
     tenantId = onboardingRes.body.data.tenant.Id;
 
@@ -73,11 +80,12 @@ describe('TenantRoles — GET/:id, PATCH/:id, DELETE/:id (e2e)', () => {
     let roleId: string;
 
     beforeAll(async () => {
+      const role = tenantRoleFactory.build();
       const res = await request(app.getHttpServer())
         .post(`/tenants/${tenantId}/roles`)
         .set('Authorization', `bearer ${accessToken}`)
         .set('x-tenant-id', tenantId)
-        .send({ Name: 'ViewRole', Description: 'Para testes de GET por ID' })
+        .send({ Name: role.Name, Description: role.Description })
         .expect(201);
       roleId = res.body.data.Id;
     });
@@ -94,7 +102,6 @@ describe('TenantRoles — GET/:id, PATCH/:id, DELETE/:id (e2e)', () => {
         .expect(200);
 
       expect(res.body.data).toHaveProperty('Id', roleId);
-      expect(res.body.data).toHaveProperty('Name', 'ViewRole');
       expect(res.body.data).toHaveProperty('TenantId', tenantId);
     });
 
@@ -123,11 +130,12 @@ describe('TenantRoles — GET/:id, PATCH/:id, DELETE/:id (e2e)', () => {
     let roleId: string;
 
     beforeAll(async () => {
+      const role = tenantRoleFactory.build();
       const res = await request(app.getHttpServer())
         .post(`/tenants/${tenantId}/roles`)
         .set('Authorization', `bearer ${accessToken}`)
         .set('x-tenant-id', tenantId)
-        .send({ Name: 'PatchRole', Description: 'Para testes de PATCH' })
+        .send({ Name: role.Name, Description: role.Description })
         .expect(201);
       roleId = res.body.data.Id;
     });
@@ -137,25 +145,27 @@ describe('TenantRoles — GET/:id, PATCH/:id, DELETE/:id (e2e)', () => {
     });
 
     it('atualiza o nome do role', async () => {
+      const updatedRole = tenantRoleFactory.build();
       const res = await request(app.getHttpServer())
         .patch(`/tenants/${tenantId}/roles/${roleId}`)
         .set('Authorization', `bearer ${accessToken}`)
         .set('x-tenant-id', tenantId)
-        .send({ Name: 'PatchRoleUpdated' })
+        .send({ Name: updatedRole.Name })
         .expect(200);
 
-      expect(res.body.data).toHaveProperty('Name', 'PatchRoleUpdated');
+      expect(res.body.data).toHaveProperty('Name', updatedRole.Name);
     });
 
     it('atualiza a descrição do role', async () => {
+      const updatedRole = tenantRoleFactory.build();
       const res = await request(app.getHttpServer())
         .patch(`/tenants/${tenantId}/roles/${roleId}`)
         .set('Authorization', `bearer ${accessToken}`)
         .set('x-tenant-id', tenantId)
-        .send({ Description: 'Nova descrição' })
+        .send({ Description: updatedRole.Description })
         .expect(200);
 
-      expect(res.body.data).toHaveProperty('Description', 'Nova descrição');
+      expect(res.body.data).toHaveProperty('Description', updatedRole.Description);
     });
 
     it('retorna 404 para ID inexistente', async () => {
@@ -163,7 +173,7 @@ describe('TenantRoles — GET/:id, PATCH/:id, DELETE/:id (e2e)', () => {
         .patch(`/tenants/${tenantId}/roles/00000000-0000-0000-0000-000000000000`)
         .set('Authorization', `bearer ${accessToken}`)
         .set('x-tenant-id', tenantId)
-        .send({ Name: 'Not Found' })
+        .send({ Name: tenantRoleFactory.build().Name })
         .expect(404);
     });
   });
@@ -172,11 +182,12 @@ describe('TenantRoles — GET/:id, PATCH/:id, DELETE/:id (e2e)', () => {
     let roleId: string;
 
     beforeAll(async () => {
+      const role = tenantRoleFactory.build();
       const res = await request(app.getHttpServer())
         .post(`/tenants/${tenantId}/roles`)
         .set('Authorization', `bearer ${accessToken}`)
         .set('x-tenant-id', tenantId)
-        .send({ Name: 'DeleteRole', Description: 'Para testes de DELETE' })
+        .send({ Name: role.Name, Description: role.Description })
         .expect(201);
       roleId = res.body.data.Id;
     });

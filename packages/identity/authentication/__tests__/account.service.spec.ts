@@ -1,5 +1,7 @@
 import { AccountService } from '../core/services/account.service';
 import { accountFactory } from '../../__tests__/factory/account.test-factory';
+import { tenantFactory } from '../../__tests__/factory/tenant.test-factory';
+import { accountTenantFactory } from '../../__tests__/factory/account-tenant.test-factory';
 
 describe('AccountService', () => {
   let service: AccountService;
@@ -18,7 +20,7 @@ describe('AccountService', () => {
         Password: 'hashedPassword',
         Provider: input.Provider ?? 'local',
       })),
-      findMe: jest.fn(async (id) => ({ Id: id, Email: 'user@example.com', tenants: [] })),
+      findMe: jest.fn(async (id) => ({ ...accountFactory.build({ Id: id }), tenants: [] })),
       updateMe: jest.fn(async () => true),
       updateEmailVerified: jest.fn(async () => undefined),
       updateProfile: jest.fn(async () => true),
@@ -28,10 +30,14 @@ describe('AccountService', () => {
       findOneByEmail: jest.fn(async (email) => ({ ...accountFactory.build(), Email: email })),
       resetPassword: jest.fn(async () => undefined),
       findProfileByAccountId: jest.fn(async () => null),
-      createOnboardingTenant: jest.fn(async (input) => ({
-        tenant: { Id: 'uuid-tenant', Name: input.TenantName },
-        membership: { AccountId: input.AccountId, TenantId: 'uuid-tenant', Status: true },
-      })),
+      createOnboardingTenant: jest.fn(async (input) => {
+        const tenant = tenantFactory.build({ Name: input.TenantName });
+        const membership = accountTenantFactory.build({
+          AccountId: input.AccountId,
+          TenantId: tenant.Id,
+        });
+        return { tenant, membership };
+      }),
     } as unknown as AccountService;
   });
 

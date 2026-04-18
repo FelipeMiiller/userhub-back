@@ -26,7 +26,11 @@ Responsabilidades:
 | `IPermissionEvaluator` | Interface   | Implementar para fornecer avaliação via DB                         |
 | `PERMISSION_EVALUATOR` | Token       | Token de injeção para `IPermissionEvaluator`                       |
 | `Payload`              | Interface   | Tipo do payload JWT                                                |
-| `PermissionLevel`      | Enum        | Níveis de permissão: NONE, VIEW, EDIT, ADMIN                       |
+| `PermissionLevel`      | Enum        | Níveis de permissão: NONE(0), VIEW(1), CREATE(2), UPDATE(3), ADMIN(4) |
+| `getActionLevel()`     | Função      | Retorna o `PermissionLevel` de uma action (list→VIEW, create→CREATE, etc.) |
+| `parsePermission()`    | Função      | Extrai `module`, `resource` e `action` de uma permission name      |
+| `permissionCovers()`   | Função      | Verifica se uma permissão cobre outra hierarquicamente             |
+| `hasPermissionWithHierarchy()` | Função | Verifica se um array de permissões atende a uma requerida (com hierarquia) |
 
 ---
 
@@ -78,6 +82,7 @@ findAll(@Headers('x-tenant-id') tenantId: string) {
 ```
 
 O `PermissionGuard` verifica `user.tenants[tenantId]` diretamente do token JWT — sem consulta ao banco.
+A verificação usa **hierarquia de níveis**: quem possui `delete` (ADMIN=4) automaticamente satisfaz `list` (VIEW=1), `create` (CREATE=2) e `update` (UPDATE=3) no mesmo recurso.
 
 ### Verificar role (⚠️ legado)
 
@@ -141,6 +146,37 @@ const revoked = await this.authorizationService.isTokenRevoked(jti);
 ```
 
 O logout do `identity` já revoga o access token automaticamente via `POST /auth/signout`.
+
+---
+
+## Hierarquia de permissões
+
+O módulo implementa hierarquia de níveis por ação dentro do mesmo recurso (`module.resource.*`):
+
+| Nível | Enum          | Actions mapeadas |
+|-------|---------------|-------------------|
+| 0     | `NONE`        | (ação desconhecida) |
+| 1     | `VIEW`        | `list`, `view`    |
+| 2     | `CREATE`      | `create`          |
+| 3     | `UPDATE`      | `update`          |
+| 4     | `ADMIN`       | `delete`          |
+
+**Regra**: um nível superior implica todos os inferiores para o mesmo `module.resource`. Ex.: quem tem `identity.account-tenant.delete` (ADMIN=4) automaticamente possui `list` (1), `create` (2) e `update` (3).
+
+Utilitários exportados:
+
+```typescript
+import { permissionCovers, hasPermissionWithHierarchy } from '@hub/shared-module/authorization';
+
+// Uma permissão cobre outra?
+permissionCovers('sales.order.delete', 'sales.order.list'); // true (4 >= 1)
+permissionCovers('sales.order.create', 'sales.order.update'); // false (2 < 3)
+
+// Verificar contra um array (usado internamente pelo PermissionGuard)
+hasPermissionWithHierarchy(['sales.order.delete'], 'sales.order.list'); // true
+```
+
+Tanto o **PermissionGuard** (fast path via token) quanto o **PermissionEvaluatorService** (fallback via DB) aplicam essa hierarquia.
 
 ---
 

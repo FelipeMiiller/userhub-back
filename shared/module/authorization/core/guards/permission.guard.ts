@@ -5,6 +5,7 @@ import {
   IPermissionEvaluator,
   PERMISSION_EVALUATOR,
 } from '../services/permission-evaluator.interface';
+import { hasPermissionWithHierarchy } from '../permissions/permission-hierarchy';
 
 @Injectable()
 export class PermissionGuard implements CanActivate {
@@ -30,7 +31,7 @@ export class PermissionGuard implements CanActivate {
     if (user.tenants) {
       const tenantPerms: string[] | undefined = user.tenants[tenantId];
       if (!tenantPerms) return false; // account não pertence a este tenant
-      return tenantPerms.includes(permissionName);
+      return hasPermissionWithHierarchy(tenantPerms, permissionName);
     }
 
     // Fallback: avalia via DB (token legado sem claims de permissão)

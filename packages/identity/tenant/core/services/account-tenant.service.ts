@@ -96,6 +96,16 @@ export class AccountTenantService {
     const account = await this.accountRepository.findOneById(input.AccountId);
     if (!account) throw new NotFoundException(`Account '${input.AccountId}' não encontrada`);
 
+    // Onboarding: só permite criar tenant se o account não pertencer a nenhum
+    const existingMemberships = await this.accountTenantRepository.findAllByAccount(
+      input.AccountId,
+    );
+    if (existingMemberships.length > 0) {
+      throw new ConflictException(
+        'Account já possui um tenant. Onboarding permitido apenas para accounts sem tenants.',
+      );
+    }
+
     const slugTaken = await this.tenantRepository.findOneBySlug(input.Slug);
     if (slugTaken) throw new ConflictException(`Slug '${input.Slug}' já está em uso`);
 

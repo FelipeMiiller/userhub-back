@@ -5,7 +5,7 @@ import { Tenant, TenantStatus } from '../../persistence/entities/tenants.entitie
 export const tenantFactory = Factory.Sync.makeFactory<Partial<Tenant>>({
   Id: Factory.each(() => faker.string.uuid()),
   Name: Factory.each(() => faker.company.name()),
-  Slug: Factory.each(() => faker.helpers.slugify(faker.company.name().toLowerCase())),
+  Slug: Factory.each(() => faker.lorem.slug(2)),
   Status: 'active' as TenantStatus,
   Metadata: null,
   CreatedAt: Factory.each(() => faker.date.recent()),
