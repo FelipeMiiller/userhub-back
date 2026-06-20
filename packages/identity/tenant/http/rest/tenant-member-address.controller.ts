@@ -12,7 +12,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import {
   JwtAuthGuard,
   TenantContextGuard,
@@ -80,6 +80,7 @@ export class TenantMemberAddressController {
   @ApiOperation({ summary: 'Cria endereço para um membro do tenant' })
   @ApiParam({ name: 'tenantId', type: String })
   @ApiParam({ name: 'accountId', type: String })
+  @ApiBody({ type: CreateAddressDto })
   @ApiResponse({ status: 201, description: 'Endereço criado' })
   async create(
     @Param('tenantId') tenantId: string,
@@ -97,6 +98,7 @@ export class TenantMemberAddressController {
   @ApiParam({ name: 'tenantId', type: String })
   @ApiParam({ name: 'accountId', type: String })
   @ApiParam({ name: 'id', type: String, format: 'uuid' })
+  @ApiBody({ type: UpdateAddressDto })
   @ApiResponse({ status: 200 })
   @ApiResponse({ status: 404, description: 'Endereço não encontrado' })
   async update(

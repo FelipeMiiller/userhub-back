@@ -10,7 +10,7 @@ import {
   Patch,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import {
   JwtAuthGuard,
   TenantContextGuard,
@@ -34,6 +34,7 @@ export class TenantRoleController {
   @Get()
   @ApiOperation({ summary: 'Lista roles de um tenant' })
   @ApiParam({ name: 'tenantId', type: String })
+  @ApiResponse({ status: 200, description: 'Lista de roles' })
   async findAll(@Param('tenantId') tenantId: string) {
     return this.tenantRoleService.findAllByTenant(tenantId);
   }
@@ -44,6 +45,8 @@ export class TenantRoleController {
   @ApiOperation({ summary: 'Busca role por ID' })
   @ApiParam({ name: 'tenantId', type: String })
   @ApiParam({ name: 'id', type: String })
+  @ApiResponse({ status: 200, description: 'Role encontrado' })
+  @ApiResponse({ status: 404, description: 'Role não encontrado' })
   async findById(@Param('id') id: string) {
     const role = await this.tenantRoleService.findOneById(id);
     if (!role) throw new NotFoundException(`TenantRole '${id}' não encontrado`);
@@ -55,6 +58,9 @@ export class TenantRoleController {
   @Post()
   @ApiOperation({ summary: 'Cria um role para um tenant' })
   @ApiParam({ name: 'tenantId', type: String })
+  @ApiBody({ type: CreateTenantRoleDto })
+  @ApiResponse({ status: 201, description: 'Role criado' })
+  @ApiResponse({ status: 409, description: 'Role já existe' })
   async create(@Param('tenantId') tenantId: string, @Body() dto: CreateTenantRoleDto) {
     return this.tenantRoleService.create({ ...dto, TenantId: tenantId });
   }
@@ -65,6 +71,9 @@ export class TenantRoleController {
   @ApiOperation({ summary: 'Atualiza um role' })
   @ApiParam({ name: 'tenantId', type: String })
   @ApiParam({ name: 'id', type: String })
+  @ApiBody({ type: CreateTenantRoleDto })
+  @ApiResponse({ status: 200, description: 'Role atualizado' })
+  @ApiResponse({ status: 404, description: 'Role não encontrado' })
   async update(@Param('id') id: string, @Body() dto: Partial<CreateTenantRoleDto>) {
     const role = await this.tenantRoleService.update(id, dto);
     if (!role) throw new NotFoundException(`TenantRole '${id}' não encontrado`);
@@ -78,6 +87,8 @@ export class TenantRoleController {
   @ApiOperation({ summary: 'Remove um role' })
   @ApiParam({ name: 'tenantId', type: String })
   @ApiParam({ name: 'id', type: String })
+  @ApiResponse({ status: 204, description: 'Role removido' })
+  @ApiResponse({ status: 404, description: 'Role não encontrado' })
   async delete(@Param('id') id: string): Promise<void> {
     await this.tenantRoleService.delete(id);
   }
@@ -88,6 +99,7 @@ export class TenantRoleController {
   @ApiOperation({ summary: 'Lista permissões de um role' })
   @ApiParam({ name: 'tenantId', type: String })
   @ApiParam({ name: 'id', type: String })
+  @ApiResponse({ status: 200, description: 'Lista de permissões do role' })
   async listPermissions(@Param('id') id: string) {
     return this.tenantRoleService.findPermissions(id);
   }
@@ -98,6 +110,9 @@ export class TenantRoleController {
   @ApiOperation({ summary: 'Adiciona permissão a um role' })
   @ApiParam({ name: 'tenantId', type: String })
   @ApiParam({ name: 'id', type: String })
+  @ApiBody({ type: AddRolePermissionDto })
+  @ApiResponse({ status: 201, description: 'Permissão adicionada ao role' })
+  @ApiResponse({ status: 404, description: 'Role ou permissão não encontrado' })
   async addPermission(@Param('id') id: string, @Body() dto: AddRolePermissionDto) {
     return this.tenantRoleService.addPermission(id, dto.PermissionId, dto.AllowedLevel, dto.Mode);
   }
@@ -110,6 +125,8 @@ export class TenantRoleController {
   @ApiParam({ name: 'tenantId', type: String })
   @ApiParam({ name: 'id', type: String })
   @ApiParam({ name: 'permissionMappingId', type: String })
+  @ApiResponse({ status: 204, description: 'Permissão removida do role' })
+  @ApiResponse({ status: 404, description: 'Mapeamento não encontrado' })
   async removePermission(@Param('permissionMappingId') permissionMappingId: string): Promise<void> {
     await this.tenantRoleService.removePermission(permissionMappingId);
   }

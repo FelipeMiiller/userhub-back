@@ -9,7 +9,8 @@
       "executor": "@nx/js:node",
       "defaultConfiguration": "development",
       "options": {
-        "buildTarget": "notification-app:build"
+        "buildTarget": "notification-app:build",
+        "port": 9230
       },
       "configurations": {
         "development": {

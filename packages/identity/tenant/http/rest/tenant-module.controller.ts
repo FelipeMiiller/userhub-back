@@ -9,7 +9,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import {
   JwtAuthGuard,
   TenantContextGuard,
@@ -43,6 +43,7 @@ export class TenantModuleController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Habilita um módulo para o tenant' })
   @ApiParam({ name: 'tenantId', type: String })
+  @ApiBody({ type: EnableTenantModuleDto })
   @ApiResponse({ status: 201, description: 'Módulo habilitado' })
   @ApiResponse({ status: 404, description: 'Tenant ou SystemModule não encontrado' })
   @ApiResponse({ status: 409, description: 'Módulo já está ativo para este tenant' })

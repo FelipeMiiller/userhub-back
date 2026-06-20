@@ -10,7 +10,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import {
   JwtAuthGuard,
   TenantContextGuard,
@@ -44,6 +44,7 @@ export class AccountTenantController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Adiciona account ao tenant' })
   @ApiParam({ name: 'tenantId', type: String })
+  @ApiBody({ type: AddAccountToTenantDto })
   @ApiResponse({ status: 201, description: 'Membership criada' })
   @ApiResponse({ status: 404, description: 'Account ou tenant não encontrado' })
   @ApiResponse({ status: 409, description: 'Account já é membro deste tenant' })

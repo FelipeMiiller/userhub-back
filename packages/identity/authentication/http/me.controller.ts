@@ -94,6 +94,7 @@ export class MeController {
   @Post('addresses')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Cria um endereço para o account autenticado' })
+  @ApiBody({ type: CreateAddressDto })
   @ApiResponse({ status: 201, description: 'Endereço criado' })
   async createAddress(@Req() req: AuthRequest, @Body() dto: CreateAddressDto) {
     const { sub }: Payload = req['user'];
@@ -103,6 +104,7 @@ export class MeController {
   @Patch('addresses/:id')
   @ApiOperation({ summary: 'Atualiza um endereço do account autenticado' })
   @ApiParam({ name: 'id', type: String, format: 'uuid' })
+  @ApiBody({ type: UpdateAddressDto })
   @ApiResponse({ status: 200 })
   @ApiResponse({ status: 404, description: 'Endereço não encontrado' })
   async updateAddress(

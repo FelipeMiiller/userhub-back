@@ -9,7 +9,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard, IdentityPermissions } from '@hub/shared-module/authorization';
 import { Permission } from '../../../core/decorators/permission.decorator';
 import { PermissionGuard } from '../../../core/guards/permission.guard';
@@ -49,6 +49,7 @@ export class PermissionCatalogController {
   @UseGuards(PermissionGuard)
   @Post()
   @ApiOperation({ summary: 'Cria uma permissão (Name gerado automaticamente)' })
+  @ApiBody({ type: CreatePermissionDto })
   @ApiResponse({ status: 201 })
   async create(@Body() dto: CreatePermissionDto) {
     return this.permissionCatalogService.create(dto);

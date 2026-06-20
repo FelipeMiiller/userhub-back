@@ -15,14 +15,19 @@ async function bootstrap() {
   const configSwagger = new DocumentBuilder()
     .setTitle('Identity-Module')
     .setDescription(
-      'Identity-Module API para gerenciamento de usuários, autenticação e autorização',
+      'Identity-Module API para gerenciamento de usuários, autenticação e autorização\n\n' +
+      '📄 [OpenAPI JSON](/api-json) | [OpenAPI YAML](/api-yaml)',
     )
     .setVersion('1.0')
+    .addServer(`http://localhost:${IdentityConfig.port}`, 'Local Development')
     .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'jwt')
     .build();
 
   const document = SwaggerModule.createDocument(app, configSwagger);
-  SwaggerModule.setup('api', app, document);
+  SwaggerModule.setup('api', app, document, {
+    jsonDocumentUrl: '/api-json',
+    yamlDocumentUrl: '/api-yaml',
+  });
 
   app.enableShutdownHooks();
 
